@@ -11,3 +11,11 @@ kiwisdr:
 vosk:
   model_path: "vosk-model-small-en-us-0.15"
   sample_rate: 16000
+
+# Keywords to detect in transcription
+# When any of these are heard, they'll be highlighted in output
+keywords:
+  - "talk spotter"
+  - "frequency"
+  - "parks"
+  - "summits"

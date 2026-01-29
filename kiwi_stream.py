@@ -63,6 +63,10 @@ class Config:
     def vosk_sample_rate(self) -> int:
         return self.data.get("vosk", {}).get("sample_rate", 16000)
 
+    @property
+    def keywords(self) -> list:
+        return self.data.get("keywords", [])
+
 
 def resample_audio(samples: np.ndarray, from_rate: int, to_rate: int) -> np.ndarray:
     """Resample audio using linear interpolation."""
@@ -213,6 +217,14 @@ class Transcriber:
             return "", partial.get("partial", "")
 
 
+def detect_keywords(text: str, keywords: list) -> list:
+    """Check if any keywords are present in the text. Returns list of found keywords."""
+    if not text or not keywords:
+        return []
+    text_lower = text.lower()
+    return [kw for kw in keywords if kw.lower() in text_lower]
+
+
 def run_kiwi_client(client, stop_event):
     """Run the KiwiSDR client in a thread."""
     try:
@@ -261,6 +273,11 @@ def main():
         help="Path to Vosk model (overrides config)"
     )
     parser.add_argument(
+        "--keywords", "-k",
+        nargs="+",
+        help="Keywords to detect (overrides config)"
+    )
+    parser.add_argument(
         "--debug", "-d",
         action="store_true",
         help="Enable debug logging"
@@ -282,6 +299,7 @@ def main():
     mode = args.mode or config.mode
     model_path = args.model or config.vosk_model_path
     vosk_rate = config.vosk_sample_rate
+    keywords = args.keywords or config.keywords
 
     if not host:
         print("Error: KiwiSDR host is required. Use --host or set in config.yaml")
@@ -329,6 +347,8 @@ def main():
 
         print("\n" + "=" * 50)
         print("Transcription started. Press Ctrl+C to stop.")
+        if keywords:
+            print(f"Watching for keywords: {', '.join(keywords)}")
         print("=" * 50 + "\n")
 
         last_partial = ""
@@ -360,7 +380,11 @@ def main():
                     audio_buffer = b""
 
                     if final:
-                        print(f"[FINAL] {final}")
+                        found = detect_keywords(final, keywords)
+                        if found:
+                            print(f"[MATCH] {final}  <-- {', '.join(found)}")
+                        else:
+                            print(f"[FINAL] {final}")
 
                     if partial and partial != last_partial:
                         print(f"[...] {partial}", end="\r", flush=True)
