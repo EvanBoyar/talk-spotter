@@ -12,6 +12,12 @@ vosk:
   model_path: "vosk-model-small-en-us-0.15"
   sample_rate: 16000
 
+# DX Cluster settings for posting spots
+dx_cluster:
+  host: "dx.w1nr.net"
+  port: 7300
+  callsign: ""  # Your callsign - REQUIRED for posting spots
+
 # Keywords to detect in transcription
 # When any of these are heard, they'll be highlighted in output
 keywords:
