@@ -1,5 +1,9 @@
 # Talk Spotter Configuration
 
+# Radio selection
+radio: 
+  "rtl_sdr"  # Options: kiwisdr, rtl_sdr, hamlib
+
 # KiwiSDR settings
 kiwisdr:
   host: "22001.proxy.kiwisdr.com"  # Known good proxy - find more at http://kiwisdr.com/public/
@@ -22,6 +26,8 @@ dx_cluster:
 # When any of these are heard, they'll be highlighted in output
 keywords:
   - "talk spotter"
+  - "call"
   - "frequency"
   - "parks"
   - "summits"
+  - "end"

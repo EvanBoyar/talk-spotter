@@ -1,20 +1,21 @@
 Talk Spotter is intended to be a program/script that can run easily on a low-power device or on a server and acts sort of like the reverse beacon network, but for voice.
 
 Project checkpoints:
-	0.1 Verify we can stream from any https://websdr.org/ web SDR and transcribe the audio as a stream.
+	0.1 Verify we can stream from any https://websdr.org/ web SDR and transcribe the audio as a stream. [removed, just doing kiwisdr]
 	0.2 Verify that we can pull arbitrary keywords and phrases from the streaming transcription
 	0.3 Verify that we can push to the DX Cluster.
 	0.4 Verify we can do 0.1, but with any http://kiwisdr.com/.public/
-	0.3 Verify we can do 0.1 and 0.2, but with a local RTL-SDR
-	0.4 Verify we can do 0.1-0.3, but with an arbitrary amateur radio transceiver. May be hardware dependent? Might just do Linux with Hamlib or something like that.
+	0.5 Verify we can do 0.1 and 0.2, but with a local RTL-SDR
+	0.6 Verify we can do 0.1-0.3, but with an arbitrary amateur radio transceiver. May be hardware dependent? Might just do Linux with Hamlib or something like that.
 
 Project philosophy:
 	This should have a super simple installation process. As few packages as possible should be used, and there should be an easy installation script. Invoking the program should be simple, and any configurations should be as easy as possible and modifiable using an easily-readable config file. All transcription should be done on-device. The system should be smart enough to know when to use USB vs LSB, but it should be possible to specify in the config file. Perhaps also create a GUI to help someone easily modify the config. This should be really easy for someone to install on a Raspberry Pi, specifically. I will mostly be testing it on an Ubuntu machine, though.
 
 Keywords:
 	"talk spotter": said 1-3 times (or so) to get the program's attention and initiate listening. This MUST be the first thing sent.
-	"[callsign in NATO phonetics]": the callsign to be spotted
+	"call [callsign in NATO phonetics]": the word "call" and then the callsign to be spotted
 	"[XOTA]": optional "parks", "summits", telling us to spot on POTA or SOTA. Optionally followed by a specific park or summit identifier.
-	"Frequency [FREQ]": the word frequency, followed by the frequency in MHz. For 14.219 MHz, it would be said like "Frequency fourteen decimal two one nine", but perhaps we can do better and have several options of how to say it.
-	Example usage 1: "talk spotter talk spotter talk spotter call november romeo eight echo PARKS uniform sierra two zero four nine frequency fourteen decimal two four six"
-	Example usage 2: "talk spotter talk spotter talk spotter frequency fourteen call november romeo eight echo"
+	"frequency [FREQ]": the word frequency, followed by the frequency in MHz. For 14.219 MHz, it would be said like "Frequency fourteen decimal two one nine", but perhaps we can do better and have several options of how to say it.
+	"end": completes the transmission
+	Example usage 1: "talk spotter talk spotter talk spotter call november romeo eight echo PARKS uniform sierra two zero four nine frequency fourteen decimal two four six end"
+	Example usage 2: "talk spotter talk spotter talk spotter frequency fourteen call november romeo eight echo end"
