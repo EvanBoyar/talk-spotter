@@ -1,15 +1,24 @@
 # Talk Spotter Configuration
 
-# Radio selection
-radio: 
-  "rtl_sdr"  # Options: kiwisdr, rtl_sdr, hamlib
+# Radio selection: kiwisdr, rtl_sdr
+radio: "rtl_sdr"
 
 # KiwiSDR settings
 kiwisdr:
-  host: "22001.proxy.kiwisdr.com"  # Known good proxy - find more at http://kiwisdr.com/public/
+  host: "22001.proxy.kiwisdr.com"  # Find more at http://kiwisdr.com/.public/
   port: 8073
   frequency: 14230  # kHz
   mode: "usb"       # usb, lsb, am, cw, nbfm
+
+# RTL-SDR settings
+rtl_sdr:
+  frequency: 147.420  # MHz
+  mode: "fm"          # fm, nbfm, usb, lsb, am
+  gain: "auto"        # dB or "auto"
+  ppm: 0              # Frequency correction
+  direct_sampling: 0  # 0=off, 1=I-branch, 2=Q-branch (use 2 for HF)
+  agc: false          # Hardware AGC (recommended for HF direct sampling)
+  sample_rate: 256000 # Use 960000 for HF
 
 # Vosk speech recognition settings
 vosk:
