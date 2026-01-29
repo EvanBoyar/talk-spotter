@@ -1,0 +1,13 @@
+# Talk Spotter Configuration
+
+# KiwiSDR settings
+kiwisdr:
+  host: "22001.proxy.kiwisdr.com"  # Known good proxy - find more at http://kiwisdr.com/public/
+  port: 8073
+  frequency: 14230  # kHz
+  mode: "usb"       # usb, lsb, am, cw, nbfm
+
+# Vosk speech recognition settings
+vosk:
+  model_path: "vosk-model-small-en-us-0.15"
+  sample_rate: 16000

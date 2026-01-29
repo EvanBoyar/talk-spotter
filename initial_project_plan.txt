@@ -4,7 +4,7 @@ Project checkpoints:
 	0.1 Verify we can stream from any https://websdr.org/ web SDR and transcribe the audio as a stream.
 	0.2 Verify that we can pull arbitrary keywords and phrases from the streaming transcription
 	0.3 Verify that we can push to the DX Cluster.
-	0.4 Verify we can do 0.1, but with any https://kiwisdr.com/.public/
+	0.4 Verify we can do 0.1, but with any http://kiwisdr.com/.public/
 	0.3 Verify we can do 0.1 and 0.2, but with a local RTL-SDR
 	0.4 Verify we can do 0.1-0.3, but with an arbitrary amateur radio transceiver. May be hardware dependent? Might just do Linux with Hamlib or something like that.
 

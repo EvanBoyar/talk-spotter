@@ -1,1 +1,32 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Vosk models (large files - download separately)
+vosk-model-*/
+
+# Audio files (test/debug artifacts)
+*.wav
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local config overrides (if you want to use a template pattern)
+# config.local.yaml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/
 CLAUDE.md
