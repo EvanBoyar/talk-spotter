@@ -7,12 +7,12 @@ radio: "rtl_sdr"
 kiwisdr:
   host: "22001.proxy.kiwisdr.com"  # Find more at http://kiwisdr.com/.public/
   port: 8073
-  frequency: 14230  # kHz
-  mode: "usb"       # usb, lsb, am, cw, nbfm
+  frequency: 7218  # kHz
+  mode: "lsb"       # usb, lsb, am, cw, nbfm
 
 # RTL-SDR settings
 rtl_sdr:
-  frequency: 147.420  # MHz
+  frequency: 147.42   # MHz
   mode: "fm"          # fm, nbfm, usb, lsb, am
   gain: "auto"        # dB or "auto"
   ppm: 0              # Frequency correction
@@ -27,9 +27,9 @@ vosk:
 
 # DX Cluster settings for posting spots
 dx_cluster:
-  host: "dx.w1nr.net"
-  port: 7300
-  callsign: ""  # Your callsign - REQUIRED for posting spots
+  host: "dxc.ve7cc.net"
+  port: 23
+  callsign: "N0CALL"  # Your callsign - REQUIRED for posting spots
 
 # Keywords to detect in transcription
 # When any of these are heard, they'll be highlighted in output

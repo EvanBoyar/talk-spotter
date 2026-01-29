@@ -25,7 +25,11 @@ class Demodulator:
         # FM demod state
         self._prev_phase = 0
 
-        # SSB filter coefficients
+        # NBFM filter - 12.5kHz channel, so ~6kHz audio bandwidth
+        self._fm_filter_taps = self._design_lowpass(6000, sample_rate, num_taps=128)
+        self._fm_filter_state = np.zeros(len(self._fm_filter_taps) - 1)
+
+        # SSB filter coefficients - 3kHz audio bandwidth
         self._filter_taps = self._design_lowpass(3000, sample_rate)
         self._filter_state = np.zeros(len(self._filter_taps) - 1)
 
@@ -52,15 +56,31 @@ class Demodulator:
             raise ValueError(f"Unknown mode: {self.mode}")
 
     def _demod_fm(self, iq: np.ndarray) -> np.ndarray:
-        """FM demodulation using phase differentiation."""
-        phase = np.angle(iq)
+        """FM demodulation using phase differentiation with filtering."""
+        # Apply low-pass filter to limit bandwidth for NBFM
+        filtered = np.convolve(iq, self._fm_filter_taps, mode='same')
+
+        # FM demodulation via phase differentiation
+        phase = np.angle(filtered)
         phase_diff = np.diff(phase)
         phase_diff = np.concatenate([[phase_diff[0]], phase_diff])
+
+        # Unwrap phase jumps
         phase_diff = np.where(phase_diff > np.pi, phase_diff - 2*np.pi, phase_diff)
         phase_diff = np.where(phase_diff < -np.pi, phase_diff + 2*np.pi, phase_diff)
-        audio = phase_diff / np.pi
+
+        # Normalize - for NBFM, deviation is ~2.5kHz, so scale appropriately
+        audio = phase_diff * (self.sample_rate / (2 * np.pi * 2500))
+
+        # Decimate to audio rate
         audio = self._decimate(audio)
-        return (audio * 16000).astype(np.int16)
+
+        # Normalize to int16 range
+        max_val = np.max(np.abs(audio))
+        if max_val > 0:
+            audio = audio / max_val * 0.8
+
+        return (audio * 32767).astype(np.int16)
 
     def _demod_ssb(self, iq: np.ndarray, upper: bool = True) -> np.ndarray:
         """SSB demodulation (USB or LSB)."""
