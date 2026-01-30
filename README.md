@@ -15,7 +15,7 @@ It is similar to but different from CW Skimmer by VE3NEA in several ways, and no
 - **Voice command parsing**: Say "talk spotter" followed by callsign and frequency to post a spot (see instructions for exact directions)
 - **DX Cluster integration**: Posts spots to the DX Cluster network
 - **POTA integration**: Posts spots directly to Parks on the Air
-- **SOTA integration**: Posts spots to Summits on the Air (OAuth authenticated)
+- **SOTA integration**: Posts spots to Summits on the Air (OAuth authenticated), coming soon™
 - **Keyword detection**: Highlight specific words/phrases in transcription output
 - **Designed for Raspberry Pi**: Lightweight, minimal dependencies
 
