@@ -62,15 +62,10 @@ jobs:
               apt-get install -y debhelper dh-python devscripts build-essential python3-all python3-setuptools && \
               dpkg-buildpackage -us -uc -b && \
               mkdir -p dist && \
-              mv ../talk-spotter_*.deb dist/
+              mv ../talk-spotter_*.deb dist/ && \
+              cd dist && \
+              for f in *.deb; do mv \"\$f\" \"\${f%.deb}_arm64.deb\"; done
             "
-
-      - name: Rename ARM package
-        run: |
-          cd dist
-          for f in *.deb; do
-            mv "$f" "${f%.deb}_arm64.deb"
-          done
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
