@@ -36,7 +36,7 @@ git clone https://github.com/EvanBoyar/talk-spotter.git && cd talk-spotter && py
 
 Then activate the venv and run: `source venv/bin/activate && python talk_spotter.py`
 
-### Step-by-step
+### Step-by-step install
 
 1. **Clone the repository**
    ```bash
@@ -78,45 +78,11 @@ Then activate the venv and run: `source venv/bin/activate && python talk_spotter
 
 ## Configuration
 
-Edit `config.yaml` to configure your setup:
+Edit `config.yaml` to configure your setup. It's designed to be pretty human-readable.
 
-```yaml
-# Your callsign - used for all spot posting
-callsign: "N0CALL"
+**For HF SSB reception with the RTL-SDR**, you'll need to set "direct sampling: 2", which means we're, uh, directly sampling the Q branch, which is what you should use for HF. Use "direct sampling: 0" for UHF/VHF.
 
-# Select radio source: kiwisdr or rtl_sdr
-radio: "rtl_sdr"
-
-# KiwiSDR settings
-kiwisdr:
-  host: "22001.proxy.kiwisdr.com"
-  port: 8073
-  frequency: 7218    # kHz
-  mode: "lsb"        # usb, lsb, am, cw, nbfm
-
-# RTL-SDR settings
-rtl_sdr:
-  frequency: 147420  # kHz
-  mode: "fm"         # fm, nbfm, usb, lsb, am
-  gain: "auto"
-  direct_sampling: 0 # 0=off, 2=Q-branch (for HF)
-  agc: false         # Enable for HF direct sampling
-  sample_rate: 256000
-
-# DX Cluster settings
-dx_cluster:
-  host: "dxc.ve7cc.net"
-  port: 23
-
-# POTA settings
-pota:
-  enabled: true
-
-# Keywords to highlight
-keywords:
-  - "talk spotter"
-  - "cq"
-```
+**SOTA Setup:** SOTA requires one-time authentication. Run `venv/bin/python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.
 
 ## Usage
 
@@ -135,18 +101,6 @@ Use `--radio` to override the config file:
 ```bash
 venv/bin/python talk_spotter.py --radio kiwisdr
 venv/bin/python talk_spotter.py --radio rtl_sdr
-```
-
-### HF with RTL-SDR
-
-For HF SSB reception, set these options in `config.yaml`:
-```yaml
-rtl_sdr:
-  frequency: 7205     # kHz
-  mode: "usb"
-  direct_sampling: 2
-  agc: true
-  sample_rate: 960000
 ```
 
 ### Using KiwiSDR
@@ -189,8 +143,6 @@ SOTA spot (posts to both SOTA and DX Cluster):
 **Note:** Frequencies with a decimal point are interpreted as MHz and converted to kHz internally. Frequencies without a decimal (like "one four two one nine") are interpreted as kHz directly. If you don't say "end", the command will auto-complete after 30 seconds if a valid callsign and frequency were parsed. Saying "talk spotter" again will restart the command.
 
 POTA spots require the park reference (e.g., K-1234). Speak it as "kilo dash one two three four" using NATO phonetics for letters and spoken numbers for digits.
-
-**SOTA Setup:** SOTA requires one-time authentication. Run `venv/bin/python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.
 
 ### Test mode (no posting)
 
