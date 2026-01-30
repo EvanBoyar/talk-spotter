@@ -94,6 +94,8 @@ class Demodulator:
         filtered, self._filter_state = self._apply_filter(iq)
         audio = np.real(filtered)
         audio = self._decimate(audio)
+        # Remove DC offset
+        audio = audio - np.mean(audio)
         if np.max(np.abs(audio)) > 0:
             audio = audio / np.max(np.abs(audio)) * 0.8
         return (audio * 32767).astype(np.int16)
@@ -101,8 +103,9 @@ class Demodulator:
     def _demod_am(self, iq: np.ndarray) -> np.ndarray:
         """AM demodulation using envelope detection."""
         envelope = np.abs(iq)
-        envelope = envelope - np.mean(envelope)
         audio = self._decimate(envelope)
+        # Remove DC offset
+        audio = audio - np.mean(audio)
         if np.max(np.abs(audio)) > 0:
             audio = audio / np.max(np.abs(audio)) * 0.8
         return (audio * 32767).astype(np.int16)
