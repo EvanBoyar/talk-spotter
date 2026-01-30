@@ -120,19 +120,21 @@ keywords:
 
 ## Usage
 
+**Note:** All commands below assume you're in the `talk-spotter` directory. Use `venv/bin/python` to run with the virtual environment's Python (no need to activate the venv first).
+
 ### Basic usage
 
 Run with settings from `config.yaml`:
 ```bash
-python talk_spotter.py
+venv/bin/python talk_spotter.py
 ```
 
 ### Override radio source
 
 Use `--radio` to override the config file:
 ```bash
-python talk_spotter.py --radio kiwisdr
-python talk_spotter.py --radio rtl_sdr
+venv/bin/python talk_spotter.py --radio kiwisdr
+venv/bin/python talk_spotter.py --radio rtl_sdr
 ```
 
 ### HF with RTL-SDR
@@ -150,14 +152,14 @@ rtl_sdr:
 ### Using KiwiSDR
 
 ```bash
-python talk_spotter.py --radio kiwisdr
+venv/bin/python talk_spotter.py --radio kiwisdr
 ```
 
 ### Voice command mode
 
 Enable spot posting via voice commands:
 ```bash
-python talk_spotter.py --spot-mode
+venv/bin/python talk_spotter.py --spot-mode
 ```
 
 **Voice command format:**
@@ -188,20 +190,20 @@ SOTA spot (posts to both SOTA and DX Cluster):
 
 POTA spots require the park reference (e.g., K-1234). Speak it as "kilo dash one two three four" using NATO phonetics for letters and spoken numbers for digits.
 
-**SOTA Setup:** SOTA requires one-time authentication. Run `python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.
+**SOTA Setup:** SOTA requires one-time authentication. Run `venv/bin/python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.
 
 ### Test mode (no posting)
 
 Parse voice commands without actually posting:
 ```bash
-python talk_spotter.py --spot-mode --no-post
+venv/bin/python talk_spotter.py --spot-mode --no-post
 ```
 
 ### Live transcription
 
 For a clean, real-time view of what's being transcribed:
 ```bash
-python talk_spotter.py --live
+venv/bin/python talk_spotter.py --live
 ```
 
 Text appears as it's recognized, updating in place until each phrase is finalized.
@@ -210,12 +212,12 @@ Text appears as it's recognized, updating in place until each phrase is finalize
 
 Save received audio to a WAV file:
 ```bash
-python talk_spotter.py --save-wav debug.wav
+venv/bin/python talk_spotter.py --save-wav debug.wav
 ```
 
 Test transcription with a pre-recorded file:
 ```bash
-python talk_spotter.py --test-file recording.wav
+venv/bin/python talk_spotter.py --test-file recording.wav
 ```
 
 ### All options
@@ -315,8 +317,7 @@ Enable hardware AGC (`agc: true`) and use direct sampling (`direct_sampling: 2`)
 
 ### Module Not Found Error
 
-You might see an error like "ModuleNotFoundError: No module named 'vosk'"
-Just run it directly from the terminal as "venv/bin/python talk_spotter.py --live". Don't invoke python3 or anything. Just directly in the terminal (from the talk_spotter dir).
+If you see "ModuleNotFoundError: No module named 'vosk'" (or similar), you're not using the virtual environment's Python. Make sure to run with `venv/bin/python talk_spotter.py` as shown in the Usage section above.
 
 ## License
 

@@ -15,6 +15,8 @@ override_dh_auto_install:
 	install -m 644 transcription.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
 	install -m 644 command_parser.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
 	install -m 644 dx_cluster.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+	install -m 644 pota_spotter.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+	install -m 644 sota_spotter.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
 	install -m 644 requirements.txt $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
 
 	# Install sources package
