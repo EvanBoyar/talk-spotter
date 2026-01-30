@@ -1,5 +1,9 @@
 # Talk Spotter
 
+<p align="center">
+  <img src="talkspotter.png" alt="Talk Spotter" width="128">
+</p>
+
 A voice-activated amateur radio spotting tool for Linux by Evan Boyar, [NR8E](https://www.qrz.com/db/NR8E). Talk Spotter listens to radio audio streams, transcribes speech on-device, and can post spots to the DX Cluster network (and in later revs POTA and SOTA) via voice commands. 
 
 It is similar to but different from CW Skimmer by VE3NEA in several ways, and not just that it's open source. As the signal processing power needed to decode the human voice is greater than what is required for CW, it can only really decode audio from a single frequency & mode at a time. As a result, you will have to set the frequency & mode you'd like your TS instance to listen on ahead of time. A standard list of frequency/mode pairs for the US amateur bands is below.
