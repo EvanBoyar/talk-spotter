@@ -15,17 +15,18 @@ kiwisdr:
 
 # RTL-SDR settings
 rtl_sdr:
-  frequency: 7205     # kHz
-  mode: "lsb"         # fm, nbfm, usb, lsb, am
+  frequency: 147420   # kHz
+  mode: "nbfm"        # nbfm, usb, lsb, am, fm
   gain: "auto"        # dB or "auto"
   ppm: 0              # Frequency correction
-  direct_sampling: 2  # 0=off, 1=I-branch, 2=Q-branch (use 2 for HF)
+  direct_sampling: 0  # 0=off, 1=I-branch, 2=Q-branch (use 2 for HF)
   agc: false          # Hardware AGC (recommended for HF direct sampling)
-  sample_rate: 960000 # Use 960000 for HF, 256000 for VHF/UHF
+  sample_rate: 256000 # Use 960000 for HF, 256000 for VHF/UHF
 
 # Vosk speech recognition settings
 vosk:
-  model_path: "vosk-model-small-en-us-0.15"
+  model_path:     "vosk-model-small-en-us-0.15" # Small model, default downloaded
+  #model_path:    "vosk-model-en-us-0.22" # Normal model, you have to download this one yourself
   sample_rate: 16000
 
 # DX Cluster settings for posting spots
