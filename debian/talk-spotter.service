@@ -1,0 +1,22 @@
+[Unit]
+Description=Talk Spotter - Voice-activated radio spotting
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/talk-spotter --spot-mode
+Restart=on-failure
+RestartSec=10
+
+# Run as dedicated user
+User=talk-spotter
+Group=talk-spotter
+
+# Access to RTL-SDR USB devices
+SupplementaryGroups=plugdev
+
+# Working directory for any temp files
+WorkingDirectory=/var/lib/talk-spotter
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,37 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	# Create directories
+	install -d $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter
+	install -d $(CURDIR)/debian/talk-spotter/usr/bin
+	install -d $(CURDIR)/debian/talk-spotter/etc/talk-spotter
+	install -d $(CURDIR)/debian/talk-spotter/lib/systemd/system
+
+	# Install Python files
+	install -m 644 talk_spotter.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+	install -m 644 transcription.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+	install -m 644 command_parser.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+	install -m 644 dx_cluster.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+	install -m 644 requirements.txt $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+
+	# Install sources package
+	install -d $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/sources
+	install -m 644 sources/*.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/sources/
+
+	# Install config template
+	install -m 644 config.yaml $(CURDIR)/debian/talk-spotter/etc/talk-spotter/config.yaml
+
+	# Install wrapper script
+	install -m 755 debian/talk-spotter.wrapper $(CURDIR)/debian/talk-spotter/usr/bin/talk-spotter
+
+	# Install systemd service
+	install -m 644 debian/talk-spotter.service $(CURDIR)/debian/talk-spotter/lib/systemd/system/
+
+override_dh_auto_build:
+	# Nothing to build
+
+override_dh_auto_test:
+	# Skip tests during package build

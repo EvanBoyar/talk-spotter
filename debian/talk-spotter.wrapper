@@ -1,0 +1,16 @@
+#!/bin/bash
+# Wrapper script for talk-spotter
+
+INSTALL_DIR="/usr/share/talk-spotter"
+VENV_DIR="/var/lib/talk-spotter/venv"
+CONFIG_FILE="/etc/talk-spotter/config.yaml"
+
+# Check if venv exists
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Error: Virtual environment not found at $VENV_DIR"
+    echo "Try running: sudo talk-spotter-setup"
+    exit 1
+fi
+
+# Run with the venv's Python
+exec "$VENV_DIR/bin/python" "$INSTALL_DIR/talk_spotter.py" --config "$CONFIG_FILE" "$@"

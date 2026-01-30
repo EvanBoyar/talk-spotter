@@ -1,0 +1,68 @@
+#!/bin/bash
+set -e
+
+INSTALL_DIR="/usr/share/talk-spotter"
+DATA_DIR="/var/lib/talk-spotter"
+VENV_DIR="$DATA_DIR/venv"
+VOSK_MODEL="vosk-model-small-en-us-0.15"
+
+case "$1" in
+    configure)
+        # Create system user if it doesn't exist
+        if ! id -u talk-spotter >/dev/null 2>&1; then
+            useradd --system --home-dir "$DATA_DIR" --shell /bin/false \
+                    --groups plugdev talk-spotter || true
+        fi
+
+        # Create data directory
+        mkdir -p "$DATA_DIR"
+        chown talk-spotter:talk-spotter "$DATA_DIR"
+
+        # Create virtual environment
+        echo "Setting up Python virtual environment..."
+        python3 -m venv "$VENV_DIR"
+
+        # Install Python dependencies
+        echo "Installing Python dependencies..."
+        "$VENV_DIR/bin/pip" install --quiet --upgrade pip
+        "$VENV_DIR/bin/pip" install --quiet -r "$INSTALL_DIR/requirements.txt"
+
+        # Download Vosk model if not present
+        if [ ! -d "$INSTALL_DIR/$VOSK_MODEL" ]; then
+            echo "Downloading Vosk speech recognition model..."
+            cd "$INSTALL_DIR"
+            wget -q "https://alphacephei.com/vosk/models/${VOSK_MODEL}.zip"
+            unzip -q "${VOSK_MODEL}.zip"
+            rm "${VOSK_MODEL}.zip"
+        fi
+
+        # Clone kiwiclient if not present
+        if [ ! -d "$INSTALL_DIR/kiwiclient" ]; then
+            echo "Downloading KiwiSDR client..."
+            git clone --quiet https://github.com/jks-prv/kiwiclient.git "$INSTALL_DIR/kiwiclient"
+        fi
+
+        # Fix ownership
+        chown -R root:root "$INSTALL_DIR"
+        chown -R talk-spotter:talk-spotter "$VENV_DIR"
+
+        # Reload systemd
+        systemctl daemon-reload
+
+        echo ""
+        echo "Talk Spotter installed successfully!"
+        echo ""
+        echo "Next steps:"
+        echo "  1. Edit configuration: sudo nano /etc/talk-spotter/config.yaml"
+        echo "  2. Set your callsign in the config file"
+        echo "  3. Start the service: sudo systemctl start talk-spotter"
+        echo "  4. Enable on boot: sudo systemctl enable talk-spotter"
+        echo ""
+        echo "Or run manually: talk-spotter --live"
+        echo ""
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

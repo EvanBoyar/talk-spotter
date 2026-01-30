@@ -1,0 +1,8 @@
+talk-spotter (1.0.0) stable; urgency=medium
+
+  * Initial release
+  * KiwiSDR and RTL-SDR support
+  * Voice command parsing with DX Cluster posting
+  * Live transcription mode
+
+ -- Evan Boyar <evanboyar@proton.me>  Wed, 29 Jan 2026 12:00:00 -0500
