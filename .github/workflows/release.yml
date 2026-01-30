@@ -19,7 +19,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y debhelper dh-python devscripts build-essential python3-all
+          sudo apt-get install -y debhelper dh-python devscripts build-essential python3-all python3-setuptools
 
       - name: Build .deb package
         run: |
@@ -59,7 +59,7 @@ jobs:
             debian:bookworm \
             bash -c "
               apt-get update && \
-              apt-get install -y debhelper dh-python devscripts build-essential python3-all && \
+              apt-get install -y debhelper dh-python devscripts build-essential python3-all python3-setuptools && \
               dpkg-buildpackage -us -uc -b && \
               mkdir -p dist && \
               mv ../talk-spotter_*.deb dist/
