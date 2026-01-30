@@ -10,6 +10,7 @@ Parses spoken commands following the protocol:
 - "end" to complete
 """
 
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -136,14 +137,34 @@ class CommandParser:
                 # Post the spot
     """
 
-    def __init__(self, wake_phrase: str = "talk spotter"):
+    # Common misheard variations of "talk spotter"
+    WAKE_PHRASE_ALIASES = [
+        "talk spotter",
+        "talk sport",
+        "talk spot",
+        "top spot",
+        "hot spot",
+        "hawks potter",
+        "talk potter",
+        "talks potter",
+        "talks spotter",
+        "talk spotted",
+    ]
+
+    def __init__(self, wake_phrase: str = "talk spotter",
+                 command_timeout: float = 30.0):
         self.wake_phrase = wake_phrase.lower()
+        self.wake_phrases = [wp.lower() for wp in self.WAKE_PHRASE_ALIASES]
+        if self.wake_phrase not in self.wake_phrases:
+            self.wake_phrases.append(self.wake_phrase)
+        self.command_timeout = command_timeout  # Seconds before auto-finalizing
         self.state = CommandState.IDLE
         self.current_command = SpotCommand()
         self._callsign_parts = []
         self._freq_parts = []
         self._timeout_words = 0  # Count words since last meaningful input
         self.max_idle_words = 20  # Reset if too many words without progress
+        self._command_start_time: Optional[float] = None  # When we heard wake phrase
 
     def reset(self):
         """Reset parser to idle state."""
@@ -152,6 +173,7 @@ class CommandParser:
         self._callsign_parts = []
         self._freq_parts = []
         self._timeout_words = 0
+        self._command_start_time = None
 
     def process(self, text: str) -> Optional[SpotCommand]:
         """
@@ -172,11 +194,20 @@ class CommandParser:
         self.current_command.raw_text.append(text)
 
         # Check for wake phrase in any state (can restart)
-        if self.wake_phrase in text_lower:
+        heard_wake = any(wp in text_lower for wp in self.wake_phrases)
+        if heard_wake:
             self.state = CommandState.LISTENING
             self._timeout_words = 0
+            self._command_start_time = time.time()
             print(f"[WAKE] Heard wake phrase, listening for command...")
             return None
+
+        # Check for time-based timeout (auto-finalize if we have enough data)
+        if self._command_start_time and self.state != CommandState.IDLE:
+            elapsed = time.time() - self._command_start_time
+            if elapsed > self.command_timeout:
+                print(f"[TIMEOUT] {elapsed:.1f}s elapsed, attempting to finalize...")
+                return self._try_auto_finalize()
 
         # State machine
         if self.state == CommandState.IDLE:
@@ -237,11 +268,40 @@ class CommandParser:
             else:
                 self._process_freq_words(words)
 
-        # Check for timeout
+        # Check for word-based timeout (too many unrecognized words)
         if self._timeout_words > self.max_idle_words:
-            print(f"[TIMEOUT] Too many words without progress, resetting")
-            self.reset()
+            print(f"[TIMEOUT] Too many words without progress, attempting to finalize...")
+            return self._try_auto_finalize()
 
+        return None
+
+    def _try_auto_finalize(self) -> Optional[SpotCommand]:
+        """Try to finalize the command; reset if invalid."""
+        self._finalize_callsign()
+        self._finalize_frequency()
+
+        if self.current_command.is_valid():
+            command = self.current_command
+            print(f"[AUTO-COMPLETE] {command}")
+            self.reset()
+            return command
+        else:
+            print(f"[INCOMPLETE] Cannot auto-complete - call={self.current_command.callsign}, freq={self.current_command.frequency_khz}")
+            self.reset()
+            return None
+
+    def check_timeout(self) -> Optional[SpotCommand]:
+        """
+        Check for time-based timeout without new input.
+
+        Call this periodically from the main loop to handle the case
+        where the user goes silent after giving a partial command.
+        """
+        if self._command_start_time and self.state != CommandState.IDLE:
+            elapsed = time.time() - self._command_start_time
+            if elapsed > self.command_timeout:
+                print(f"[TIMEOUT] {elapsed:.1f}s elapsed (no new input), attempting to finalize...")
+                return self._try_auto_finalize()
         return None
 
     def _process_callsign_words(self, words: list):
@@ -285,17 +345,19 @@ class CommandParser:
         # Join parts and parse
         freq_str = ''.join(self._freq_parts)
 
-        # Handle cases like "fourteen two five zero" -> "14250"
-        # or "fourteen decimal two five zero" -> "14.250"
+        # Handle spoken frequencies:
+        # - "one four two five zero" -> "14250" -> 14250 kHz (direct)
+        # - "one four point two five" -> "14.25" -> 14250 kHz (MHz spoken, convert to kHz)
+        # - "one four six five two zero" -> "146520" -> 146520 kHz (VHF, direct)
         try:
-            freq_mhz = float(freq_str)
-            # If it looks like MHz (< 100), convert to kHz
-            if freq_mhz < 100:
-                self.current_command.frequency_khz = freq_mhz * 1000
+            freq = float(freq_str)
+            # If it has a decimal or is < 1000, user probably spoke in MHz
+            if '.' in freq_str or freq < 1000:
+                self.current_command.frequency_khz = freq * 1000
             else:
                 # Already in kHz
-                self.current_command.frequency_khz = freq_mhz
-            print(f"[PARSE] Frequency: {self.current_command.frequency_khz} kHz")
+                self.current_command.frequency_khz = freq
+            print(f"[PARSE] Frequency: {self.current_command.frequency_khz:.1f} kHz")
         except ValueError:
             print(f"[WARN] Could not parse frequency from: {freq_str}")
 
@@ -341,10 +403,11 @@ def parse_frequency_text(text: str) -> Optional[float]:
     """
     Parse a spoken frequency into kHz.
 
-    Examples:
-        "fourteen two five zero" -> 14250.0
-        "fourteen decimal two five" -> 14250.0
-        "seven point two zero five" -> 7205.0
+    Users naturally speak frequencies in MHz with decimals, so we convert:
+    - "one four two five zero" -> 14250 kHz (direct, no decimal)
+    - "one four point two five" -> 14250 kHz (14.25 MHz spoken)
+    - "seven point two zero five" -> 7205 kHz (7.205 MHz spoken)
+    - "one four six five two zero" -> 146520 kHz (VHF, direct)
     """
     words = text.lower().split()
     parts = []
@@ -364,8 +427,8 @@ def parse_frequency_text(text: str) -> Optional[float]:
     try:
         freq_str = ''.join(parts)
         freq = float(freq_str)
-        # Convert MHz to kHz if needed
-        if freq < 100:
+        # If decimal present or small number, user spoke in MHz
+        if '.' in freq_str or freq < 1000:
             return freq * 1000
         return freq
     except ValueError:

@@ -205,7 +205,7 @@ class RTLSDRStream:
 
         self._running = True
 
-        logging.info(f"RTL-SDR started: {self.frequency/1e6:.3f} MHz, mode={self.mode}, "
+        logging.info(f"RTL-SDR started: {self.frequency/1e3:.1f} kHz, mode={self.mode}, "
                      f"sample_rate={self.sample_rate}")
 
         # Read samples in a loop
@@ -245,7 +245,7 @@ def main():
         "--freq", "-f",
         type=float,
         required=True,
-        help="Frequency in MHz (e.g., 146.52)"
+        help="Frequency in kHz (e.g., 146520)"
     )
     parser.add_argument(
         "--mode", "-m",
@@ -309,9 +309,9 @@ def main():
     logging.basicConfig(level=log_level, format='%(asctime)s %(levelname)s: %(message)s')
 
     # Convert frequency to Hz
-    freq_hz = args.freq * 1e6
+    freq_hz = args.freq * 1e3
 
-    print(f"Frequency: {args.freq} MHz, Mode: {args.mode.upper()}")
+    print(f"Frequency: {args.freq:.1f} kHz, Mode: {args.mode.upper()}")
     print(f"Loading Vosk model from: {args.model}")
 
     # Load Vosk model

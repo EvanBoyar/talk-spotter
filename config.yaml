@@ -12,7 +12,7 @@ kiwisdr:
 
 # RTL-SDR settings
 rtl_sdr:
-  frequency: 147.42   # MHz
+  frequency: 147420   # kHz
   mode: "fm"          # fm, nbfm, usb, lsb, am
   gain: "auto"        # dB or "auto"
   ppm: 0              # Frequency correction

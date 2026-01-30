@@ -10,6 +10,7 @@ import argparse
 import logging
 import signal
 import sys
+import time
 import wave
 from pathlib import Path
 
@@ -115,6 +116,11 @@ def main():
         "--no-post",
         action="store_true",
         help="Parse commands but don't actually post spots (for testing)"
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Live transcription mode - clean display of speech as it's heard"
     )
 
     args = parser.parse_args()
@@ -264,6 +270,7 @@ def main():
     # Audio processing state
     audio_buffer = b""
     last_partial = ""
+    last_partial_len = [0]  # Track length for clearing line in live mode
     target_chunk_size = 8000  # ~0.25 seconds at 16kHz
     chunks_received = [0]
 
@@ -272,7 +279,7 @@ def main():
         nonlocal audio_buffer, last_partial
 
         chunks_received[0] += 1
-        if chunks_received[0] == 1:
+        if chunks_received[0] == 1 and not args.live:
             print(f"First audio chunk: {len(audio_samples)} samples")
         if chunks_received[0] % 100 == 0:
             logging.debug(f"Chunks received: {chunks_received[0]}")
@@ -291,27 +298,42 @@ def main():
 
             final, partial = transcriber.process_audio(chunk)
 
-            if final:
-                # Standard keyword detection
-                found = detect_keywords(final, keywords)
-                if found:
-                    print(f"[MATCH] {final}  <-- {', '.join(found)}")
-                else:
-                    print(f"[FINAL] {final}")
+            if args.live:
+                # Live mode: clean display
+                if final:
+                    # Clear partial line and print final text
+                    print("\r" + " " * last_partial_len[0] + "\r", end="")
+                    print(final)
+                    last_partial_len[0] = 0
+                elif partial and partial != last_partial:
+                    # Update partial in place
+                    display = partial
+                    # Clear previous and show new
+                    print("\r" + " " * last_partial_len[0] + "\r" + display, end="", flush=True)
+                    last_partial_len[0] = len(display)
+                    last_partial = partial
+            else:
+                # Standard mode with labels
+                if final:
+                    found = detect_keywords(final, keywords)
+                    if found:
+                        print(f"[MATCH] {final}  <-- {', '.join(found)}")
+                    else:
+                        print(f"[FINAL] {final}")
 
-                # Voice command parsing if enabled
-                if cmd_parser:
-                    command = cmd_parser.process(final)
-                    if command and command.is_valid():
-                        post_spot(command)
+                if partial and partial != last_partial:
+                    print(f"[...] {partial}", end="\r", flush=True)
+                    last_partial = partial
 
-            if partial and partial != last_partial:
-                print(f"[...] {partial}", end="\r", flush=True)
-                last_partial = partial
+            # Voice command parsing (works in both modes)
+            if final and cmd_parser:
+                command = cmd_parser.process(final)
+                if command and command.is_valid():
+                    post_spot(command)
 
-                # Also feed partials to command parser for real-time feedback
-                if cmd_parser:
-                    cmd_parser.process(partial)
+            # Feed partials to command parser for real-time feedback
+            if partial and partial != last_partial and cmd_parser:
+                cmd_parser.process(partial)
 
     try:
         # Start transcriber
@@ -320,18 +342,27 @@ def main():
         # Start audio source
         source.start(audio_callback)
 
-        print("\n" + "=" * 50)
-        print("Transcription started. Press Ctrl+C to stop.")
-        if args.spot_mode:
-            print("Say 'talk spotter' followed by:")
-            print("  'call' + NATO phonetic callsign")
-            print("  'frequency' + spoken MHz (e.g., 'fourteen two five zero')")
-            print("  'end' to post the spot")
-        print("=" * 50 + "\n")
+        if args.live:
+            print("\nListening... (Ctrl+C to stop)\n")
+        else:
+            print("\n" + "=" * 50)
+            print("Transcription started. Press Ctrl+C to stop.")
+            if args.spot_mode:
+                print("Say 'talk spotter' followed by:")
+                print("  'call' + NATO phonetic callsign")
+                print("  'frequency' + spoken frequency (e.g., 'one four point two five' or 'one four two five zero')")
+                print("  'end' to post the spot")
+            print("=" * 50 + "\n")
 
-        # Wait for stop signal
+        # Main loop - check for timeout periodically
         while not stop_requested and source.is_running:
-            signal.pause()
+            time.sleep(1.0)  # Check every second
+
+            # Check for command timeout (user went silent)
+            if cmd_parser:
+                command = cmd_parser.check_timeout()
+                if command and command.is_valid():
+                    post_spot(command)
 
     except FileNotFoundError as e:
         print(f"Error: {e}")

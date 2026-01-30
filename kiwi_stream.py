@@ -49,7 +49,7 @@ class Config:
 
     @property
     def frequency(self) -> float:
-        return self.data.get("kiwisdr", {}).get("frequency", 14.230)
+        return self.data.get("kiwisdr", {}).get("frequency", 14230)
 
     @property
     def mode(self) -> str:
@@ -306,12 +306,8 @@ def main():
         print("Find public KiwiSDRs at: http://kiwisdr.com/public/")
         sys.exit(1)
 
-    # Convert frequency to kHz if given in MHz
-    if freq < 100:
-        freq = freq * 1000  # Convert MHz to kHz
-
     print(f"Connecting to KiwiSDR: {host}:{port}")
-    print(f"Frequency: {freq} kHz, Mode: {mode.upper()}")
+    print(f"Frequency: {freq:.1f} kHz, Mode: {mode.upper()}")
 
     # Initialize components
     audio_queue = Queue()

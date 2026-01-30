@@ -146,13 +146,10 @@ class KiwiSDRSource(AudioSource):
         self._audio_queue = Queue()
         self._stop_event = threading.Event()
 
-        # Convert frequency to kHz if given in MHz
         freq = self.frequency
-        if freq < 100:
-            freq = freq * 1000
 
         print(f"Connecting to KiwiSDR: {self.host}:{self.port}")
-        print(f"Frequency: {freq} kHz, Mode: {self.mode.upper()}")
+        print(f"Frequency: {freq:.1f} kHz, Mode: {self.mode.upper()}")
 
         options = KiwiOptions(self.host, self.port, freq, self.mode)
         self._client = TalkSpotterKiwiClient(options, self._audio_queue)

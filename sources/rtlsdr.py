@@ -124,7 +124,7 @@ class RTLSDRSource(AudioSource):
         Initialize RTL-SDR source.
 
         Config keys:
-            frequency: Frequency in MHz
+            frequency: Frequency in kHz
             mode: Demodulation mode (fm, nbfm, usb, lsb, am)
             gain: Gain in dB or 'auto' (default: auto)
             ppm: Frequency correction in PPM (default: 0)
@@ -133,7 +133,7 @@ class RTLSDRSource(AudioSource):
             sample_rate: SDR sample rate (default: 256000)
         """
         super().__init__(config)
-        self.frequency = config.get('frequency', 146.52) * 1e6  # Convert MHz to Hz
+        self.frequency = config.get('frequency', 146520) * 1e3  # Convert kHz to Hz
         self.mode = config.get('mode', 'fm')
         self.gain = config.get('gain', 'auto')
         self.ppm = config.get('ppm', 0)
@@ -185,8 +185,8 @@ class RTLSDRSource(AudioSource):
 
         self._running = True
 
-        print(f"RTL-SDR: {self.frequency/1e6:.3f} MHz, Mode: {self.mode.upper()}")
-        logging.info(f"RTL-SDR started: {self.frequency/1e6:.3f} MHz, mode={self.mode}, "
+        print(f"RTL-SDR: {self.frequency/1e3:.1f} kHz, Mode: {self.mode.upper()}")
+        logging.info(f"RTL-SDR started: {self.frequency/1e3:.1f} kHz, mode={self.mode}, "
                      f"sample_rate={self.sample_rate}")
 
         # Start streaming thread

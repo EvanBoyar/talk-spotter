@@ -91,7 +91,7 @@ kiwisdr:
 
 # RTL-SDR settings
 rtl_sdr:
-  frequency: 147.42  # MHz
+  frequency: 147420  # kHz
   mode: "fm"         # fm, nbfm, usb, lsb, am
   gain: "auto"
   direct_sampling: 0 # 0=off, 2=Q-branch (for HF)
@@ -132,7 +132,7 @@ python talk_spotter.py --radio rtl_sdr
 For HF SSB reception, set these options in `config.yaml`:
 ```yaml
 rtl_sdr:
-  frequency: 7.205
+  frequency: 7205     # kHz
   mode: "usb"
   direct_sampling: 2
   agc: true
@@ -155,10 +155,12 @@ python talk_spotter.py --spot-mode
 **Voice command format:**
 1. Say "talk spotter" (wake phrase)
 2. Say "call" followed by the callsign in NATO phonetics (e.g., "whiskey one alpha whiskey")
-3. Say "frequency" followed by the frequency in MHz (e.g., "one four point two one nine" for 14.219)
-4. Say "end" to post the spot
+3. Say "frequency" followed by the frequency (e.g., "one four point two one nine" for 14219 kHz, or "one four two one nine" for 14219 kHz)
+4. Say "end" to post the spot (or wait 30 seconds for auto-complete)
 
 Example: "talk spotter call whiskey one alpha whiskey frequency one four point two one nine end"
+
+**Note:** Frequencies with a decimal point are interpreted as MHz and converted to kHz internally. Frequencies without a decimal (like "one four two one nine") are interpreted as kHz directly. If you don't say "end", the command will auto-complete after 30 seconds if a valid callsign and frequency were parsed. Saying "talk spotter" again will restart the command.
 
 ### Test mode (no posting)
 
@@ -166,6 +168,15 @@ Parse voice commands without actually posting:
 ```bash
 python talk_spotter.py --spot-mode --no-post
 ```
+
+### Live transcription
+
+For a clean, real-time view of what's being transcribed:
+```bash
+python talk_spotter.py --live
+```
+
+Text appears as it's recognized, updating in place until each phrase is finalized.
 
 ### Debug audio
 
@@ -184,7 +195,7 @@ python talk_spotter.py --test-file recording.wav
 ```
 usage: talk_spotter.py [-h] [--config CONFIG] [--radio {kiwisdr,rtl_sdr}]
                        [--debug] [--save-wav FILE] [--test-file FILE]
-                       [--spot-mode] [--no-post]
+                       [--spot-mode] [--no-post] [--live]
 
 options:
   -h, --help            show this help message and exit
@@ -196,6 +207,7 @@ options:
   --test-file FILE      Test transcription with a WAV file (no radio needed)
   --spot-mode           Enable voice command parsing and spot posting
   --no-post             Parse commands but don't actually post spots
+  --live                Live transcription mode - clean real-time display
 ```
 
 ## Standalone scripts
@@ -205,6 +217,47 @@ These scripts can be used independently for testing specific functionality:
 - `kiwi_stream.py` - Stream and transcribe from a KiwiSDR
 - `rtl_stream.py` - Stream and transcribe from an RTL-SDR
 - `dx_cluster.py` - Test DX Cluster connectivity
+
+## Running at Startup
+
+To run Talk Spotter automatically on boot (useful for a dedicated Pi), create a systemd service:
+
+1. **Create the service file**
+   ```bash
+   sudo nano /etc/systemd/system/talkspotter.service
+   ```
+
+2. **Paste this configuration** (adjust paths and user as needed):
+   ```ini
+   [Unit]
+   Description=Talk Spotter - Voice-activated radio spotting
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=pi
+   WorkingDirectory=/home/pi/talk-spotter
+   ExecStart=/home/pi/talk-spotter/venv/bin/python talk_spotter.py --spot-mode
+   Restart=on-failure
+   RestartSec=10
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+3. **Enable and start the service**
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable talkspotter
+   sudo systemctl start talkspotter
+   ```
+
+4. **Useful commands**
+   ```bash
+   sudo systemctl status talkspotter   # Check status
+   sudo journalctl -u talkspotter -f   # View live logs
+   sudo systemctl restart talkspotter  # Restart after config changes
+   ```
 
 ## Troubleshooting
 
@@ -225,6 +278,11 @@ Enable hardware AGC (`agc: true`) and use direct sampling (`direct_sampling: 2`)
 - Ensure audio is clear (check with `--save-wav`)
 - Try a larger Vosk model for better accuracy
 - Speak clearly and use standard phonetics for callsigns
+
+### Module Not Found Error
+
+You might see an error like "ModuleNotFoundError: No module named 'vosk'"
+Just run it directly from the terminal as "venv/bin/python talk_spotter.py --live". Don't invoke python3 or anything. Just directly in the terminal (from the talk_spotter dir).
 
 ## License
 
