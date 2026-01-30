@@ -29,7 +29,7 @@ It is similar to but different from CW Skimmer by VE3NEA in several ways, and no
 ### Quick install (copy-paste)
 
 ```bash
-git clone https://github.com/yourusername/talk-spotter.git && cd talk-spotter && python3 -m venv venv && venv/bin/pip install -r requirements.txt && wget -q https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip && unzip -q vosk-model-small-en-us-0.15.zip && rm vosk-model-small-en-us-0.15.zip && git clone https://github.com/jks-prv/kiwiclient.git
+git clone https://github.com/EvanBoyar/talk-spotter.git && cd talk-spotter && python3 -m venv venv && venv/bin/pip install -r requirements.txt && wget -q https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip && unzip -q vosk-model-small-en-us-0.15.zip && rm vosk-model-small-en-us-0.15.zip && git clone https://github.com/jks-prv/kiwiclient.git
 ```
 
 Then activate the venv and run: `source venv/bin/activate && python talk_spotter.py`
@@ -38,7 +38,7 @@ Then activate the venv and run: `source venv/bin/activate && python talk_spotter
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/talk-spotter.git
+   git clone https://github.com/EvanBoyar/talk-spotter.git
    cd talk-spotter
    ```
 
