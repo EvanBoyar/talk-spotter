@@ -5,6 +5,8 @@ RTL-SDR audio source for Talk Spotter.
 
 import logging
 import threading
+import time
+from queue import Queue, Empty
 from typing import Callable
 
 import numpy as np
@@ -119,6 +121,9 @@ class Demodulator:
 class RTLSDRSource(AudioSource):
     """RTL-SDR audio source implementation."""
 
+    # Timeout for detecting stalled streams (seconds)
+    STALL_TIMEOUT = 5.0
+
     def __init__(self, config: dict):
         """
         Initialize RTL-SDR source.
@@ -144,11 +149,15 @@ class RTLSDRSource(AudioSource):
         self._sdr = None
         self._demodulator = None
         self._stream_thread = None
+        self._process_thread = None
+        self._iq_queue = None
+        self._last_sample_time = None
 
     def start(self, audio_callback: Callable[[np.ndarray], None]):
         """Start streaming from RTL-SDR."""
         self._audio_callback = audio_callback
         self._sdr = RtlSdr()
+        self._iq_queue = Queue(maxsize=10)  # Limit queue size to prevent memory buildup
 
         # Configure SDR
         self._sdr.sample_rate = self.sample_rate
@@ -184,24 +193,55 @@ class RTLSDRSource(AudioSource):
         self._demodulator = Demodulator(self.mode, self.sample_rate, self.VOSK_SAMPLE_RATE)
 
         self._running = True
+        self._last_sample_time = time.time()
 
         print(f"RTL-SDR: {self.frequency/1e3:.1f} kHz, Mode: {self.mode.upper()}")
         logging.info(f"RTL-SDR started: {self.frequency/1e3:.1f} kHz, mode={self.mode}, "
                      f"sample_rate={self.sample_rate}")
 
-        # Start streaming thread
+        # Start reading thread (reads from SDR, puts in queue)
         self._stream_thread = threading.Thread(
-            target=self._stream_loop,
-            daemon=True
+            target=self._read_loop,
+            daemon=True,
+            name="rtlsdr-read"
         )
         self._stream_thread.start()
 
-    def _stream_loop(self):
-        """Main streaming loop."""
+        # Start processing thread (reads from queue, demodulates, calls callback)
+        self._process_thread = threading.Thread(
+            target=self._process_loop,
+            daemon=True,
+            name="rtlsdr-process"
+        )
+        self._process_thread.start()
+
+    def _read_loop(self):
+        """Read IQ samples from SDR and put in queue."""
         while self._running:
             try:
                 # Read IQ samples
                 iq_samples = self._sdr.read_samples(65536)
+                self._last_sample_time = time.time()
+
+                # Put in queue, drop if full (prevents memory buildup)
+                try:
+                    self._iq_queue.put_nowait(iq_samples)
+                except:
+                    # Queue full, drop samples
+                    logging.debug("RTL-SDR queue full, dropping samples")
+
+            except Exception as e:
+                if self._running:
+                    logging.error(f"RTL-SDR read error: {e}")
+                    self._running = False
+                break
+
+    def _process_loop(self):
+        """Process IQ samples from queue."""
+        while self._running:
+            try:
+                # Get samples with timeout
+                iq_samples = self._iq_queue.get(timeout=0.5)
 
                 # Demodulate to audio
                 audio = self._demodulator.demodulate(iq_samples)
@@ -210,10 +250,17 @@ class RTLSDRSource(AudioSource):
                 if len(audio) > 0:
                     self._audio_callback(audio)
 
+            except Empty:
+                # Check for stall
+                if self._last_sample_time:
+                    elapsed = time.time() - self._last_sample_time
+                    if elapsed > self.STALL_TIMEOUT:
+                        logging.warning(f"RTL-SDR stalled - no data for {elapsed:.1f}s")
+                        # Don't break, just warn - might recover
+                continue
             except Exception as e:
                 if self._running:
-                    logging.error(f"RTL-SDR read error: {e}")
-                break
+                    logging.error(f"RTL-SDR processing error: {e}")
 
     def stop(self):
         """Stop streaming."""
