@@ -1,4 +1,4 @@
-talk-spotter (1.0.0) stable; urgency=medium
+talk-spotter (0.1.0) stable; urgency=medium
 
   * Initial release
   * KiwiSDR and RTL-SDR support
