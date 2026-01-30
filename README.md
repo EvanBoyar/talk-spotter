@@ -4,7 +4,7 @@
   <img src="talkspotter.png" alt="Talk Spotter" width="128">
 </p>
 
-A voice-activated amateur radio spotting tool for Linux by Evan Boyar, [NR8E](https://www.qrz.com/db/NR8E). Talk Spotter listens to radio audio streams, transcribes speech on-device, and can post spots to the DX Cluster network and POTA (Parks on the Air) via voice commands. 
+A voice-activated amateur radio spotting tool for Linux by Evan Boyar, [NR8E](https://www.qrz.com/db/NR8E). Talk Spotter listens to radio audio streams, transcribes speech on-device, and can post spots to the DX Cluster network, POTA (Parks on the Air), and SOTA (Summits on the Air) via voice commands. 
 
 It is similar to but different from CW Skimmer by VE3NEA in several ways, and not just that it's open source. As the signal processing power needed to decode the human voice is greater than what is required for CW, it can only really decode audio from a single frequency & mode at a time. As a result, you will have to set the frequency & mode you'd like your TS instance to listen on ahead of time. A standard list of frequency/mode pairs for the US amateur bands is below.
 
@@ -15,6 +15,7 @@ It is similar to but different from CW Skimmer by VE3NEA in several ways, and no
 - **Voice command parsing**: Say "talk spotter" followed by callsign and frequency to post a spot (see instructions for exact directions)
 - **DX Cluster integration**: Posts spots to the DX Cluster network
 - **POTA integration**: Posts spots directly to Parks on the Air
+- **SOTA integration**: Posts spots to Summits on the Air (OAuth authenticated)
 - **Keyword detection**: Highlight specific words/phrases in transcription output
 - **Designed for Raspberry Pi**: Lightweight, minimal dependencies
 
@@ -162,7 +163,7 @@ python talk_spotter.py --spot-mode
 **Voice command format:**
 1. Say "talk spotter" (wake phrase)
 2. Say "call" followed by the callsign in NATO phonetics (e.g., "whiskey one alpha whiskey")
-3. (Optional) Say "parks" followed by the park reference for POTA spots (e.g., "kilo dash one two three four" for K-1234)
+3. (Optional) Say "parks" for POTA or "summits" for SOTA, followed by the reference (e.g., "kilo dash one two three four" for K-1234, or "whiskey four charlie slash charlie mike dash zero zero one" for W4C/CM-001)
 4. Say "frequency" followed by the frequency (e.g., "one four point two one nine" for 14219 kHz, or "one four two one nine" for 14219 kHz)
 5. Say "end" to post the spot (or wait 30 seconds for auto-complete)
 
@@ -178,9 +179,16 @@ POTA spot (posts to both POTA and DX Cluster):
 "talk spotter call whiskey one alpha whiskey parks kilo dash one two three four frequency one four point two one nine end"
 ```
 
+SOTA spot (posts to both SOTA and DX Cluster):
+```
+"talk spotter call whiskey one alpha whiskey summits whiskey four charlie slash charlie mike dash zero zero one frequency one four point two one nine end"
+```
+
 **Note:** Frequencies with a decimal point are interpreted as MHz and converted to kHz internally. Frequencies without a decimal (like "one four two one nine") are interpreted as kHz directly. If you don't say "end", the command will auto-complete after 30 seconds if a valid callsign and frequency were parsed. Saying "talk spotter" again will restart the command.
 
 POTA spots require the park reference (e.g., K-1234). Speak it as "kilo dash one two three four" using NATO phonetics for letters and spoken numbers for digits.
+
+**SOTA Setup:** SOTA requires one-time authentication. Run `python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.
 
 ### Test mode (no posting)
 
@@ -216,6 +224,7 @@ python talk_spotter.py --test-file recording.wav
 usage: talk_spotter.py [-h] [--config CONFIG] [--radio {kiwisdr,rtl_sdr}]
                        [--debug] [--save-wav FILE] [--test-file FILE]
                        [--spot-mode] [--no-post] [--live]
+                       [--sota-login] [--sota-logout] [--sota-status]
 
 options:
   -h, --help            show this help message and exit
@@ -228,6 +237,9 @@ options:
   --spot-mode           Enable voice command parsing and spot posting
   --no-post             Parse commands but don't actually post spots
   --live                Live transcription mode - clean real-time display
+  --sota-login          Login to SOTA (one-time setup for spot posting)
+  --sota-logout         Logout from SOTA (clear stored tokens)
+  --sota-status         Check SOTA authentication status
 ```
 
 ## Standalone scripts
@@ -238,6 +250,7 @@ These scripts can be used independently for testing specific functionality:
 - `rtl_stream.py` - Stream and transcribe from an RTL-SDR
 - `dx_cluster.py` - Test DX Cluster connectivity
 - `pota_spotter.py` - Test POTA spot posting
+- `sota_spotter.py` - SOTA authentication and spot posting
 
 ## Running at Startup
 

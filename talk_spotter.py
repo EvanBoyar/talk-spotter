@@ -20,6 +20,7 @@ from transcription import Transcriber, detect_keywords
 from sources import KiwiSDRSource, RTLSDRSource
 from dx_cluster import DXCluster
 from pota_spotter import POTASpotter
+from sota_spotter import SOTASpotter, SOTAAuth
 from command_parser import CommandParser, SpotCommand
 
 
@@ -70,6 +71,11 @@ class Config:
     def pota(self) -> dict:
         """Get POTA configuration."""
         return self.data.get("pota", {})
+
+    @property
+    def sota(self) -> dict:
+        """Get SOTA configuration."""
+        return self.data.get("sota", {})
 
     @property
     def keywords(self) -> list:
@@ -133,8 +139,45 @@ def main():
         action="store_true",
         help="Live transcription mode - clean display of speech as it's heard"
     )
+    parser.add_argument(
+        "--sota-login",
+        action="store_true",
+        help="Login to SOTA (one-time setup for spot posting)"
+    )
+    parser.add_argument(
+        "--sota-logout",
+        action="store_true",
+        help="Logout from SOTA (clear stored tokens)"
+    )
+    parser.add_argument(
+        "--sota-status",
+        action="store_true",
+        help="Check SOTA authentication status"
+    )
 
     args = parser.parse_args()
+
+    # Handle SOTA authentication commands (no radio needed)
+    if args.sota_login:
+        auth = SOTAAuth()
+        success = auth.device_login()
+        sys.exit(0 if success else 1)
+
+    if args.sota_logout:
+        auth = SOTAAuth()
+        auth.logout()
+        sys.exit(0)
+
+    if args.sota_status:
+        auth = SOTAAuth()
+        if auth.is_authenticated:
+            if auth.ensure_valid_token():
+                print("SOTA: Authenticated (tokens valid)")
+            else:
+                print("SOTA: Tokens expired - run --sota-login to re-authenticate")
+        else:
+            print("SOTA: Not authenticated - run --sota-login to authenticate")
+        sys.exit(0)
 
     # Setup logging
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -246,9 +289,10 @@ def main():
 
     # Function to post a spot
     def post_spot(command: SpotCommand):
-        """Post a spot to DX Cluster and/or POTA."""
+        """Post a spot to DX Cluster, POTA, and/or SOTA."""
         dx_config = config.dx_cluster
         pota_config = config.pota
+        sota_config = config.sota
         callsign = config.callsign
 
         if not callsign:
@@ -259,6 +303,8 @@ def main():
             spot_info = f"{command.callsign} on {command.frequency_khz:.1f} kHz"
             if command.network == "pota" and command.network_id:
                 spot_info += f" (POTA {command.network_id})"
+            elif command.network == "sota" and command.network_id:
+                spot_info += f" (SOTA {command.network_id})"
             print(f"[SPOT] Would post: {spot_info}")
             return True
 
@@ -287,6 +333,36 @@ def main():
                         print(f"[POTA] Failed to post: {result.get('error', 'Unknown error')}")
                 except Exception as e:
                     print(f"[POTA] Failed to post: {e}")
+
+        # Check if this is a SOTA spot
+        elif command.network == "sota":
+            sota_enabled = sota_config.get('enabled', False)
+
+            if not sota_enabled:
+                print("[SOTA] SOTA spotting is disabled in config")
+            elif not command.network_id:
+                print("[SOTA] No summit reference provided - cannot post to SOTA")
+            else:
+                print(f"[SOTA] Posting: {command.callsign} at {command.network_id} on {command.frequency_khz:.1f} kHz")
+                try:
+                    auth = SOTAAuth()
+                    if not auth.is_authenticated:
+                        print("[SOTA] Not logged in - run with --sota-login first")
+                    else:
+                        spotter = SOTASpotter(callsign, auth)
+                        result = spotter.post_spot(
+                            activator=command.callsign,
+                            frequency_khz=command.frequency_khz,
+                            summit_ref=command.network_id,
+                            mode="SSB",
+                            comments="Spotted via TalkSpotter"
+                        )
+                        if result["success"]:
+                            print(f"[SOTA] Posted successfully!")
+                        else:
+                            print(f"[SOTA] Failed to post: {result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    print(f"[SOTA] Failed to post: {e}")
 
         # Post to DX Cluster if configured
         host = dx_config.get('host')
