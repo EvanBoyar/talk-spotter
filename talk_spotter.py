@@ -14,7 +14,6 @@ import time
 import wave
 from pathlib import Path
 
-import numpy as np
 import yaml
 
 from transcription import Transcriber, detect_keywords
@@ -398,13 +397,6 @@ def main():
     target_chunk_size = 8000  # ~0.25 seconds at 16kHz
     chunks_received = [0]
 
-    # Slow AGC state (smooths out per-chunk normalization from demodulator)
-    agc_gain = [1.0]  # Current gain level (use list for nonlocal access)
-    AGC_TARGET = 0.4  # Target RMS level (fraction of full scale)
-    AGC_ATTACK = 0.08  # Slow attack - gradual response to loud signals
-    AGC_RELEASE = 0.002  # Slow release - gradually increase gain when quiet
-    AGC_MAX_GAIN = 3.0  # Maximum gain to prevent amplifying noise too much
-
     def audio_callback(audio_samples):
         """Process incoming audio samples."""
         nonlocal audio_buffer, last_partial
@@ -414,26 +406,6 @@ def main():
             print(f"First audio chunk: {len(audio_samples)} samples")
         if chunks_received[0] % 100 == 0:
             logging.debug(f"Chunks received: {chunks_received[0]}")
-
-        # Apply slow AGC to smooth out level variations
-        audio_float = audio_samples.astype(np.float32) / 32767.0
-        audio_float = audio_float * agc_gain[0]
-
-        # Measure RMS level
-        rms = np.sqrt(np.mean(audio_float ** 2))
-
-        # Adjust gain with fast attack, slow release
-        if rms > AGC_TARGET:
-            # Fast attack - reduce gain
-            desired_gain = AGC_TARGET / rms * agc_gain[0]
-            agc_gain[0] = agc_gain[0] * (1 - AGC_ATTACK) + desired_gain * AGC_ATTACK
-        elif rms > 0 and agc_gain[0] < AGC_MAX_GAIN:
-            # Slow release - gradually increase gain
-            agc_gain[0] = min(AGC_MAX_GAIN, agc_gain[0] * (1 + AGC_RELEASE))
-
-        # Clip and convert back to int16
-        audio_float = np.clip(audio_float, -1.0, 1.0)
-        audio_samples = (audio_float * 32767).astype(np.int16)
 
         # Save to WAV if enabled
         if wav_file:

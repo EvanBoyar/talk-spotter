@@ -77,6 +77,9 @@ class Demodulator:
         # Decimate to audio rate
         audio = self._decimate(audio)
 
+        # Remove DC offset (critical for speech recognition)
+        audio = audio - np.mean(audio)
+
         # Normalize to int16 range
         max_val = np.max(np.abs(audio))
         if max_val > 0:
