@@ -4,7 +4,7 @@
   <img src="talkspotter.png" alt="Talk Spotter" width="128">
 </p>
 
-A voice-activated amateur radio spotting tool for Linux by Evan Boyar, [NR8E](https://www.qrz.com/db/NR8E). Talk Spotter listens to radio audio streams, transcribes speech on-device, and can post spots to the DX Cluster network (and in later revs POTA and SOTA) via voice commands. 
+A voice-activated amateur radio spotting tool for Linux by Evan Boyar, [NR8E](https://www.qrz.com/db/NR8E). Talk Spotter listens to radio audio streams, transcribes speech on-device, and can post spots to the DX Cluster network and POTA (Parks on the Air) via voice commands. 
 
 It is similar to but different from CW Skimmer by VE3NEA in several ways, and not just that it's open source. As the signal processing power needed to decode the human voice is greater than what is required for CW, it can only really decode audio from a single frequency & mode at a time. As a result, you will have to set the frequency & mode you'd like your TS instance to listen on ahead of time. A standard list of frequency/mode pairs for the US amateur bands is below.
 
@@ -14,6 +14,7 @@ It is similar to but different from CW Skimmer by VE3NEA in several ways, and no
 - **On-device transcription**: Uses Vosk for privacy-preserving speech-to-text
 - **Voice command parsing**: Say "talk spotter" followed by callsign and frequency to post a spot (see instructions for exact directions)
 - **DX Cluster integration**: Posts spots to the DX Cluster network
+- **POTA integration**: Posts spots directly to Parks on the Air
 - **Keyword detection**: Highlight specific words/phrases in transcription output
 - **Designed for Raspberry Pi**: Lightweight, minimal dependencies
 
@@ -79,6 +80,9 @@ Then activate the venv and run: `source venv/bin/activate && python talk_spotter
 Edit `config.yaml` to configure your setup:
 
 ```yaml
+# Your callsign - used for all spot posting
+callsign: "N0CALL"
+
 # Select radio source: kiwisdr or rtl_sdr
 radio: "rtl_sdr"
 
@@ -102,7 +106,10 @@ rtl_sdr:
 dx_cluster:
   host: "dxc.ve7cc.net"
   port: 23
-  callsign: "N0CALL"  # Your callsign
+
+# POTA settings
+pota:
+  enabled: true
 
 # Keywords to highlight
 keywords:
@@ -155,12 +162,25 @@ python talk_spotter.py --spot-mode
 **Voice command format:**
 1. Say "talk spotter" (wake phrase)
 2. Say "call" followed by the callsign in NATO phonetics (e.g., "whiskey one alpha whiskey")
-3. Say "frequency" followed by the frequency (e.g., "one four point two one nine" for 14219 kHz, or "one four two one nine" for 14219 kHz)
-4. Say "end" to post the spot (or wait 30 seconds for auto-complete)
+3. (Optional) Say "parks" followed by the park reference for POTA spots (e.g., "kilo dash one two three four" for K-1234)
+4. Say "frequency" followed by the frequency (e.g., "one four point two one nine" for 14219 kHz, or "one four two one nine" for 14219 kHz)
+5. Say "end" to post the spot (or wait 30 seconds for auto-complete)
 
-Example: "talk spotter call whiskey one alpha whiskey frequency one four point two one nine end"
+**Examples:**
+
+Basic DX Cluster spot:
+```
+"talk spotter call whiskey one alpha whiskey frequency one four point two one nine end"
+```
+
+POTA spot (posts to both POTA and DX Cluster):
+```
+"talk spotter call whiskey one alpha whiskey parks kilo dash one two three four frequency one four point two one nine end"
+```
 
 **Note:** Frequencies with a decimal point are interpreted as MHz and converted to kHz internally. Frequencies without a decimal (like "one four two one nine") are interpreted as kHz directly. If you don't say "end", the command will auto-complete after 30 seconds if a valid callsign and frequency were parsed. Saying "talk spotter" again will restart the command.
+
+POTA spots require the park reference (e.g., K-1234). Speak it as "kilo dash one two three four" using NATO phonetics for letters and spoken numbers for digits.
 
 ### Test mode (no posting)
 
@@ -217,6 +237,7 @@ These scripts can be used independently for testing specific functionality:
 - `kiwi_stream.py` - Stream and transcribe from a KiwiSDR
 - `rtl_stream.py` - Stream and transcribe from an RTL-SDR
 - `dx_cluster.py` - Test DX Cluster connectivity
+- `pota_spotter.py` - Test POTA spot posting
 
 ## Running at Startup
 

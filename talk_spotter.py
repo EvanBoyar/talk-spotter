@@ -19,6 +19,7 @@ import yaml
 from transcription import Transcriber, detect_keywords
 from sources import KiwiSDRSource, RTLSDRSource
 from dx_cluster import DXCluster
+from pota_spotter import POTASpotter
 from command_parser import CommandParser, SpotCommand
 
 
@@ -34,6 +35,11 @@ class Config:
             with open(self.config_path) as f:
                 return yaml.safe_load(f) or {}
         return {}
+
+    @property
+    def callsign(self) -> str:
+        """Get user's callsign for spot posting."""
+        return self.data.get("callsign", "")
 
     @property
     def radio(self) -> str:
@@ -59,6 +65,11 @@ class Config:
     def dx_cluster(self) -> dict:
         """Get DX Cluster configuration."""
         return self.data.get("dx_cluster", {})
+
+    @property
+    def pota(self) -> dict:
+        """Get POTA configuration."""
+        return self.data.get("pota", {})
 
     @property
     def keywords(self) -> list:
@@ -199,13 +210,14 @@ def main():
         cmd_parser = CommandParser(wake_phrase="talk spotter")
         print("Spot mode enabled - say 'talk spotter' to start a command")
 
-        # Setup DX cluster connection info
-        dx_config = config.dx_cluster
+        # Check callsign is configured
         if not args.no_post:
-            if not dx_config.get('callsign'):
+            if not config.callsign:
                 print("Warning: No callsign in config - spots will not be posted")
             else:
-                print(f"Will post spots as {dx_config['callsign']} to {dx_config.get('host', 'dxc.ve7cc.net')}")
+                dx_host = config.dx_cluster.get('host')
+                if dx_host:
+                    print(f"Will post spots as {config.callsign} to {dx_host}")
 
     # Create audio source
     print(f"Radio source: {config.radio}")
@@ -234,20 +246,55 @@ def main():
 
     # Function to post a spot
     def post_spot(command: SpotCommand):
-        """Post a spot to DX Cluster."""
+        """Post a spot to DX Cluster and/or POTA."""
         dx_config = config.dx_cluster
-        callsign = dx_config.get('callsign', '')
+        pota_config = config.pota
+        callsign = config.callsign
 
         if not callsign:
             print("[SPOT] No callsign configured - cannot post")
             return False
 
         if args.no_post:
-            print(f"[SPOT] Would post: {command.callsign} on {command.frequency_khz:.1f} kHz")
+            spot_info = f"{command.callsign} on {command.frequency_khz:.1f} kHz"
+            if command.network == "pota" and command.network_id:
+                spot_info += f" (POTA {command.network_id})"
+            print(f"[SPOT] Would post: {spot_info}")
             return True
 
-        host = dx_config.get('host', 'dxc.ve7cc.net')
-        port = dx_config.get('port', 23)
+        # Check if this is a POTA spot
+        if command.network == "pota":
+            pota_enabled = pota_config.get('enabled', False)
+
+            if not pota_enabled:
+                print("[POTA] POTA spotting is disabled in config")
+            elif not command.network_id:
+                print("[POTA] No park reference provided - cannot post to POTA")
+            else:
+                print(f"[POTA] Posting: {command.callsign} at {command.network_id} on {command.frequency_khz:.1f} kHz")
+                try:
+                    spotter = POTASpotter(callsign)
+                    result = spotter.post_spot(
+                        activator=command.callsign,
+                        frequency_khz=command.frequency_khz,
+                        park_ref=command.network_id,
+                        mode="SSB",
+                        comments="Spotted via TalkSpotter"
+                    )
+                    if result["success"]:
+                        print(f"[POTA] Posted successfully!")
+                    else:
+                        print(f"[POTA] Failed to post: {result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    print(f"[POTA] Failed to post: {e}")
+
+        # Post to DX Cluster if configured
+        host = dx_config.get('host')
+        port = dx_config.get('port')
+
+        if not host or not port:
+            logging.debug("DX Cluster not configured - skipping")
+            return True
 
         # Build comment
         comment = "TalkSpotter"
@@ -256,7 +303,7 @@ def main():
             if command.network_id:
                 comment += f" {command.network_id}"
 
-        print(f"[SPOT] Posting: {command.callsign} on {command.frequency_khz:.1f} kHz")
+        print(f"[SPOT] Posting to DX Cluster: {command.callsign} on {command.frequency_khz:.1f} kHz")
         try:
             with DXCluster(host, port, callsign) as cluster:
                 response = cluster.spot(command.frequency_khz, command.callsign, comment)

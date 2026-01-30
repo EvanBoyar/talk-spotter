@@ -1,5 +1,8 @@
 # Talk Spotter Configuration
 
+# Your callsign - used for all spot posting (DX Cluster, POTA, etc.)
+callsign: "N0CALL"
+
 # Radio selection: kiwisdr, rtl_sdr
 radio: "rtl_sdr"
 
@@ -29,7 +32,10 @@ vosk:
 dx_cluster:
   host: "dxc.ve7cc.net"
   port: 23
-  callsign: "N0CALL"  # Your callsign - REQUIRED for posting spots
+
+# POTA (Parks on the Air) settings
+pota:
+  enabled: true
 
 # Keywords to detect in transcription
 # When any of these are heard, they'll be highlighted in output
