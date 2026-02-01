@@ -6,7 +6,7 @@
 
 A voice-activated amateur radio spotting tool for Linux by Evan Boyar, [NR8E](https://www.qrz.com/db/NR8E). Talk Spotter listens to radio audio streams, transcribes speech on-device, and can post spots to the DX Cluster network and POTA via voice commands.
 
-It is similar to but different from CW Skimmer by VE3NEA in several ways, and not just that it's open source. As the signal processing power needed to decode the human voice is greater than what is required for CW, it can only really decode audio from a single frequency & mode at a time. As a result, you will have to set the frequency & mode you'd like your TS instance to listen on ahead of time. A standard list of frequency/mode pairs for the US amateur bands is below.
+It is similar to but different from CW Skimmer by VE3NEA in several ways, and not just that it's open source. As the signal processing power needed to decode the human voice is greater than what is required for CW, it can only really decode audio from a single frequency & mode at a time. As a result, you will have to set the frequency & mode you'd like your TS instance to listen on ahead of time. A standard list of frequency/mode pairs for the US amateur bands is below in the Band plan section.
 
 ## Features
 
@@ -18,6 +18,17 @@ It is similar to but different from CW Skimmer by VE3NEA in several ways, and no
 - **SOTA integration**: Posts spots to Summits on the Air (OAuth authenticated), coming soon™
 - **Keyword detection**: Highlight specific words/phrases in transcription output
 - **Designed for Raspberry Pi**: Lightweight, minimal dependencies
+
+## Band plan
+As Talk Spotter is intended to be used by more than just those who have set up listening nodes, let's try to stick to these frequencies and modes. Send me a PR if you've noticed an issue with one of these.
+
+|Band (m)|Frequency (kHz)|Mode|
+|--------|---------------|----|
+|40|7278|lsb|
+|20|14278|usb|
+|10|28578|usb|
+|2|147578|nbfm|
+|70|444578|nbfm|
 
 ## Requirements
 
