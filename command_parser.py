@@ -196,6 +196,8 @@ class CommandParser:
         # Check for wake phrase in any state (can restart)
         heard_wake = any(wp in text_lower for wp in self.wake_phrases)
         if heard_wake:
+            # Reset any partial state and start fresh
+            self.reset()
             self.state = CommandState.LISTENING
             self._timeout_words = 0
             self._command_start_time = time.time()

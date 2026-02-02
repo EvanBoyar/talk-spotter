@@ -95,7 +95,11 @@ class SOTAAuth:
                 timeout=10
             )
             response.raise_for_status()
-            device_data = response.json()
+            try:
+                device_data = response.json()
+            except ValueError:
+                print("Failed to parse device code response (invalid JSON).")
+                return False
         except requests.RequestException as e:
             print(f"Failed to get device code: {e}")
             return False
@@ -146,8 +150,12 @@ class SOTAAuth:
                     return True
 
                 # Check for pending/slow_down responses
-                error_data = response.json()
-                error = error_data.get("error")
+                try:
+                    error_data = response.json()
+                    error = error_data.get("error")
+                except ValueError:
+                    print(f"\nUnexpected response from SOTA auth service: {response.text}")
+                    return False
 
                 if error == "authorization_pending":
                     # User hasn't completed login yet
@@ -211,8 +219,14 @@ class SOTAAuth:
                 logging.debug("SOTA tokens refreshed successfully")
                 return True
             else:
-                error_data = response.json()
-                error = error_data.get("error")
+                try:
+                    error_data = response.json()
+                    error = error_data.get("error")
+                except ValueError:
+                    logging.warning(
+                        "Unexpected response from SOTA auth service while refreshing tokens"
+                    )
+                    return False
                 if error == "invalid_grant":
                     # Refresh token expired - user needs to re-login
                     logging.warning("SOTA refresh token expired - please run --sota-login")

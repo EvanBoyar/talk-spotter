@@ -22,6 +22,11 @@ class Demodulator:
         self.mode = mode.lower()
         self.sample_rate = sample_rate
         self.audio_rate = audio_rate
+        if sample_rate % audio_rate != 0:
+            raise ValueError(
+                f"Sample rate {sample_rate} must be divisible by audio rate {audio_rate} "
+                "for decimation. Choose a sample_rate like 256000 or 960000."
+            )
         self.decimation = sample_rate // audio_rate
 
         # FM demod state

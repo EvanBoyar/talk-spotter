@@ -7,6 +7,7 @@ and can push spots to DX Cluster and POTA/SOTA networks.
 """
 
 import argparse
+import audioop
 import logging
 import signal
 import sys
@@ -15,8 +16,10 @@ import wave
 from pathlib import Path
 
 import yaml
+import numpy as np
 
 from transcription import Transcriber, detect_keywords
+from sources.base import AudioSource
 from sources import KiwiSDRSource, RTLSDRSource
 from dx_cluster import DXCluster
 from pota_spotter import POTASpotter
@@ -210,10 +213,14 @@ def main():
         transcriber.start()
 
         with wave.open(args.test_file, 'rb') as wf:
-            if wf.getnchannels() != 1:
-                print("Warning: WAV file is not mono, results may be poor")
+            channels = wf.getnchannels()
+            width = wf.getsampwidth()
+            if channels != 1:
+                print("Warning: WAV file is not mono, downmixing to mono")
             if wf.getframerate() != sample_rate:
                 print(f"Warning: WAV file is {wf.getframerate()}Hz, expected {sample_rate}Hz")
+            if width != 2:
+                print("Warning: WAV file is not 16-bit PCM, converting to 16-bit")
 
             print(f"Reading {wf.getnframes()} frames...")
             chunk_size = 4000  # Process in chunks
@@ -221,6 +228,20 @@ def main():
                 data = wf.readframes(chunk_size)
                 if len(data) == 0:
                     break
+                if channels == 2:
+                    data = audioop.tomono(data, width, 0.5, 0.5)
+
+                if width == 1:
+                    # Convert unsigned 8-bit to signed
+                    data = audioop.bias(data, 1, -128)
+
+                if width != 2:
+                    data = audioop.lin2lin(data, width, 2)
+
+                if wf.getframerate() != sample_rate:
+                    samples = np.frombuffer(data, dtype=np.int16)
+                    samples = AudioSource.resample_audio(samples, wf.getframerate(), sample_rate)
+                    data = samples.tobytes()
                 final, partial = transcriber.process_audio(data)
                 if final:
                     found = detect_keywords(final, keywords)
@@ -421,6 +442,7 @@ def main():
 
             final, partial = transcriber.process_audio(chunk)
 
+            prev_partial = last_partial
             if args.live:
                 # Live mode: clean display
                 if final:
@@ -428,13 +450,12 @@ def main():
                     print("\r" + " " * last_partial_len[0] + "\r", end="")
                     print(final)
                     last_partial_len[0] = 0
-                elif partial and partial != last_partial:
+                elif partial and partial != prev_partial:
                     # Update partial in place
                     display = partial
                     # Clear previous and show new
                     print("\r" + " " * last_partial_len[0] + "\r" + display, end="", flush=True)
                     last_partial_len[0] = len(display)
-                    last_partial = partial
             else:
                 # Standard mode with labels
                 if final:
@@ -444,9 +465,8 @@ def main():
                     else:
                         print(f"[FINAL] {final}")
 
-                if partial and partial != last_partial:
+                if partial and partial != prev_partial:
                     print(f"[...] {partial}", end="\r", flush=True)
-                    last_partial = partial
 
             # Voice command parsing (works in both modes)
             if final and cmd_parser:
@@ -455,8 +475,11 @@ def main():
                     post_spot(command)
 
             # Feed partials to command parser for real-time feedback
-            if partial and partial != last_partial and cmd_parser:
+            if partial and partial != prev_partial and cmd_parser:
                 cmd_parser.process(partial)
+
+            if partial:
+                last_partial = partial
 
     try:
         # Start transcriber
