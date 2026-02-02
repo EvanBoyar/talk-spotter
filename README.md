@@ -8,10 +8,12 @@ A voice-activated amateur radio spotting tool for Linux by Evan Boyar, [NR8E](ht
 
 It is similar to but different from CW Skimmer by VE3NEA in several ways, and not just that it's open source. As the signal processing power needed to decode the human voice is greater than what is required for CW, it can only really decode audio from a single frequency & mode at a time. As a result, you will have to set the frequency & mode you'd like your TS instance to listen on ahead of time. A standard list of frequency/mode pairs for the US amateur bands is below in the Band plan section.
 
+I suggest you set it and forget it on a Raspberry Pi. I've tested it on a 3 B+.
+
 ## Features
 
 - **Multiple audio sources**: RTL-SDR (local hardware) or KiwiSDR (remote). Rig support coming soon™
-- **On-device transcription**: Uses Vosk for privacy-preserving speech-to-text
+- **On-device transcription**: Uses Vosk for $0 speech-to-text
 - **Voice command parsing**: Say "talk spotter" followed by callsign and frequency to post a spot (see instructions for exact directions)
 - **DX Cluster integration**: Posts spots to the DX Cluster network
 - **POTA integration**: Posts spots directly to Parks on the Air
@@ -33,7 +35,7 @@ As Talk Spotter is intended to be used by more than just those who have set up l
 ## Requirements
 
 - Python 3.8+
-- Linux (tested on Ubuntu)
+- Linux
 - For RTL-SDR: RTL-SDR dongle (e.g., RTL-SDR Blog V3)
 - For KiwiSDR: Internet connection
 
