@@ -1,3 +1,15 @@
+talk-spotter (0.2.0) stable; urgency=medium
+
+  * Add POTA spot posting support
+  * Add SOTA spot posting support with OAuth authentication
+  * Fix RTL-SDR freezing by separating read and process threads
+  * Add slow AGC to smooth audio level variations
+  * Add DC offset removal to FM demodulator
+  * Add second model path option to config
+  * Enhance error handling in SOTA authentication
+
+ -- Evan Boyar <evanboyar@proton.me>  Sun, 02 Feb 2026 12:00:00 -0500
+
 talk-spotter (0.1.0) stable; urgency=medium
 
   * Initial release
