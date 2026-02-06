@@ -290,7 +290,7 @@ class RTLSDRSource(AudioSource):
         if self._sdr:
             try:
                 self._sdr.close()
-            except:
+            except Exception:
                 pass
             self._sdr = None
         logging.info("RTL-SDR source stopped")

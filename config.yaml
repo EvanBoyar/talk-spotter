@@ -3,7 +3,7 @@
 # Your callsign - used for all spot posting (DX Cluster, POTA, etc.)
 callsign: "N0CALL"
 
-# Radio selection: kiwisdr, rtl_sdr
+# Radio selection: kiwisdr, rtl_sdr, sound_card
 radio: "rtl_sdr"
 
 # KiwiSDR settings
@@ -22,6 +22,12 @@ rtl_sdr:
   direct_sampling: 0  # 0=off, 1=I-branch, 2=Q-branch (use 2 for HF)
   agc: false          # Hardware AGC (recommended for HF direct sampling)
   sample_rate: 256000 # Use 960000 for HF, 256000 for VHF/UHF
+
+# Sound card settings (for Digirig or similar audio interfaces)
+# Requires: pip install soundcard>=0.4.5
+sound_card:
+  microphone_substring: ""   # Substring to match (e.g., "CM108 Audio Controller"), empty = default mic
+  samplerate: 48000
 
 # Vosk speech recognition settings
 vosk:

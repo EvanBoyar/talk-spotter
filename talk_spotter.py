@@ -19,7 +19,6 @@ import numpy as np
 
 from transcription import Transcriber, detect_keywords
 from sources.base import AudioSource
-from sources import KiwiSDRSource, RTLSDRSource
 from dx_cluster import DXCluster
 from pota_spotter import POTASpotter
 from sota_spotter import SOTASpotter, SOTAAuth
@@ -80,6 +79,11 @@ class Config:
         return self.data.get("sota", {})
 
     @property
+    def sound_card(self) -> dict:
+        """Get sound card configuration."""
+        return self.data.get("sound_card", {})
+
+    @property
     def keywords(self) -> list:
         """Get keywords to detect."""
         return self.data.get("keywords", [])
@@ -90,9 +94,14 @@ def create_source(config: Config):
     radio = config.radio.lower()
 
     if radio == "kiwisdr":
+        from sources.kiwisdr import KiwiSDRSource
         return KiwiSDRSource(config.kiwisdr)
     elif radio == "rtl_sdr":
+        from sources.rtlsdr import RTLSDRSource
         return RTLSDRSource(config.rtl_sdr)
+    elif radio == "sound_card":
+        from sources.sound_card import SoundCardSource
+        return SoundCardSource(config.sound_card)
     else:
         raise ValueError(f"Unknown radio type: {radio}")
 
@@ -108,7 +117,7 @@ def main():
     )
     parser.add_argument(
         "--radio", "-r",
-        choices=["kiwisdr", "rtl_sdr"],
+        choices=["kiwisdr", "rtl_sdr", "sound_card"],
         help="Radio source (overrides config)"
     )
     parser.add_argument(

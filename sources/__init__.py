@@ -1,9 +1,10 @@
 """
 Audio sources for Talk Spotter.
+
+Source classes are imported lazily so the app can boot even if
+optional dependencies (kiwiclient, pyrtlsdr, soundcard) are missing.
 """
 
 from .base import AudioSource
-from .kiwisdr import KiwiSDRSource
-from .rtlsdr import RTLSDRSource
 
-__all__ = ['AudioSource', 'KiwiSDRSource', 'RTLSDRSource']
+__all__ = ['AudioSource']

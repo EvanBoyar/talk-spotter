@@ -3,3 +3,7 @@ pyyaml>=6.0
 numpy>=1.20.0
 pyrtlsdr>=0.3.0
 requests>=2.25.0
+setuptools>=68.0
+
+# Optional: for sound_card radio source (Digirig, etc.)
+# soundcard>=0.4.5
