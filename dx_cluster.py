@@ -48,10 +48,12 @@ class DXCluster:
         if not self.sock:
             raise RuntimeError("Not connected. Call connect() first.")
 
-        # Build DX command
-        cmd = f"DX {frequency:.1f} {dx_callsign.upper()}"
-        if comment:
-            cmd += f" {comment}"
+        # Build DX command (strip newlines from inputs to prevent command injection)
+        clean_call = dx_callsign.upper().replace('\r', '').replace('\n', '')
+        clean_comment = comment.replace('\r', '').replace('\n', '') if comment else ""
+        cmd = f"DX {frequency:.1f} {clean_call}"
+        if clean_comment:
+            cmd += f" {clean_comment}"
 
         self._send(cmd)
         return self._read_until_prompt()
@@ -62,7 +64,7 @@ class DXCluster:
             try:
                 self._send("BYE")
                 self.sock.close()
-            except:
+            except Exception:
                 pass
             self.sock = None
 

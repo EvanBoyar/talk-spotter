@@ -85,7 +85,7 @@ class POTASpotter:
                 try:
                     error_data = response.json()
                     error_msg = error_data.get("message", response.text)
-                except:
+                except Exception:
                     error_msg = response.text or f"HTTP {response.status_code}"
 
                 return {"success": False, "error": error_msg}

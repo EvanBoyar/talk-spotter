@@ -64,13 +64,17 @@ class Demodulator:
 
     def _demod_fm(self, iq: np.ndarray) -> np.ndarray:
         """FM demodulation using phase differentiation with filtering."""
-        # Apply low-pass filter to limit bandwidth for NBFM
-        filtered = np.convolve(iq, self._fm_filter_taps, mode='same')
+        # Apply low-pass filter with state preservation across chunks
+        filtered, self._fm_filter_state = self._apply_fm_filter(iq)
 
         # FM demodulation via phase differentiation
         phase = np.angle(filtered)
-        phase_diff = np.diff(phase)
-        phase_diff = np.concatenate([[phase_diff[0]], phase_diff])
+
+        # Compute phase diff, using previous chunk's last phase for continuity
+        phase_diff = np.empty_like(phase)
+        phase_diff[0] = phase[0] - self._prev_phase
+        phase_diff[1:] = np.diff(phase)
+        self._prev_phase = phase[-1]
 
         # Unwrap phase jumps
         phase_diff = np.where(phase_diff > np.pi, phase_diff - 2*np.pi, phase_diff)
@@ -116,10 +120,17 @@ class Demodulator:
         return (audio * 32767).astype(np.int16)
 
     def _apply_filter(self, samples: np.ndarray) -> tuple:
-        """Apply FIR filter with state preservation."""
+        """Apply SSB FIR filter with state preservation."""
         extended = np.concatenate([self._filter_state, samples])
         filtered = np.convolve(extended, self._filter_taps, mode='valid')
         new_state = extended[-(len(self._filter_taps) - 1):]
+        return filtered, new_state
+
+    def _apply_fm_filter(self, samples: np.ndarray) -> tuple:
+        """Apply FM FIR filter with state preservation."""
+        extended = np.concatenate([self._fm_filter_state, samples])
+        filtered = np.convolve(extended, self._fm_filter_taps, mode='valid')
+        new_state = extended[-(len(self._fm_filter_taps) - 1):]
         return filtered, new_state
 
     def _decimate(self, samples: np.ndarray) -> np.ndarray:
@@ -237,7 +248,7 @@ class RTLSDRSource(AudioSource):
                 # Put in queue, drop if full (prevents memory buildup)
                 try:
                     self._iq_queue.put_nowait(iq_samples)
-                except:
+                except Exception:
                     # Queue full, drop samples
                     logging.debug("RTL-SDR queue full, dropping samples")
 

@@ -217,6 +217,6 @@ class KiwiSDRSource(AudioSource):
         if client:
             try:
                 client.close()
-            except:
+            except Exception:
                 pass
         logging.info("KiwiSDR source stopped")

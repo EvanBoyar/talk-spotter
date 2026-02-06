@@ -7,7 +7,6 @@ and can push spots to DX Cluster and POTA/SOTA networks.
 """
 
 import argparse
-import audioop
 import logging
 import signal
 import sys
@@ -228,15 +227,24 @@ def main():
                 data = wf.readframes(chunk_size)
                 if len(data) == 0:
                     break
-                if channels == 2:
-                    data = audioop.tomono(data, width, 0.5, 0.5)
 
+                # Convert to numpy for processing
                 if width == 1:
-                    # Convert unsigned 8-bit to signed
-                    data = audioop.bias(data, 1, -128)
+                    samples = np.frombuffer(data, dtype=np.uint8).astype(np.int16) - 128
+                    samples = (samples * 256).astype(np.int16)
+                elif width == 2:
+                    samples = np.frombuffer(data, dtype=np.int16)
+                elif width == 4:
+                    samples = np.frombuffer(data, dtype=np.int32)
+                    samples = (samples >> 16).astype(np.int16)
+                else:
+                    raise ValueError(f"Unsupported sample width: {width}")
 
-                if width != 2:
-                    data = audioop.lin2lin(data, width, 2)
+                # Downmix stereo to mono
+                if channels == 2:
+                    samples = ((samples[0::2].astype(np.int32) + samples[1::2].astype(np.int32)) // 2).astype(np.int16)
+
+                data = samples.tobytes()
 
                 if wf.getframerate() != sample_rate:
                     samples = np.frombuffer(data, dtype=np.int16)
