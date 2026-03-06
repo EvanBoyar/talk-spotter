@@ -11,9 +11,10 @@ from vosk import Model, KaldiRecognizer
 class Transcriber:
     """Speech-to-text transcription using Vosk."""
 
-    def __init__(self, model_path: str, sample_rate: int = 16000):
+    def __init__(self, model_path: str, sample_rate: int = 16000, grammar: str = None):
         self.model_path = model_path
         self.sample_rate = sample_rate
+        self.grammar = grammar
         self.model = None
         self.recognizer = None
 
@@ -27,8 +28,12 @@ class Transcriber:
 
         print(f"Loading Vosk model from: {self.model_path}")
         self.model = Model(self.model_path)
-        self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
-        print("Vosk model loaded successfully")
+        if self.grammar:
+            self.recognizer = KaldiRecognizer(self.model, self.sample_rate, self.grammar)
+            print("Vosk model loaded successfully (grammar-constrained)")
+        else:
+            self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
+            print("Vosk model loaded successfully")
 
     def process_audio(self, audio_data: bytes) -> tuple[str, str]:
         """

@@ -194,15 +194,19 @@ class CommandParser:
         self.current_command.raw_text.append(text)
 
         # Check for wake phrase in any state (can restart)
-        heard_wake = any(wp in text_lower for wp in self.wake_phrases)
-        if heard_wake:
-            # Reset any partial state and start fresh
-            self.reset()
-            self.state = CommandState.LISTENING
-            self._timeout_words = 0
-            self._command_start_time = time.time()
-            print(f"[WAKE] Heard wake phrase, listening for command...")
-            return None
+        for wp in self.wake_phrases:
+            idx = text_lower.find(wp)
+            if idx != -1:
+                self.reset()
+                self.state = CommandState.LISTENING
+                self._timeout_words = 0
+                self._command_start_time = time.time()
+                print(f"[WAKE] Heard wake phrase, listening for command...")
+                # Process any words spoken after the wake phrase in the same utterance
+                remaining = text_lower[idx + len(wp):].strip()
+                if remaining:
+                    return self.process(remaining)
+                return None
 
         # Check for time-based timeout (auto-finalize if we have enough data)
         if self._command_start_time and self.state != CommandState.IDLE:
@@ -217,54 +221,62 @@ class CommandParser:
             return None
 
         elif self.state == CommandState.LISTENING:
-            # Looking for "call" as a standalone word to start callsign
             if 'call' in words:
                 self.state = CommandState.PARSING_CALL
-                # Get words after "call"
-                idx = words.index('call')
-                self._process_callsign_words(words[idx+1:])
-                print(f"[PARSE] Starting callsign: {self._callsign_parts}")
-            elif 'end' in words:
+                after = words[words.index('call')+1:]
+                if after:
+                    return self.process(" ".join(after))
+            elif 'end' in words or 'complete' in words:
                 return self._finalize()
             else:
                 self._timeout_words += len(words)
 
         elif self.state == CommandState.PARSING_CALL:
-            # Check for transition words
-            if 'frequency' in words:
+            # Find the first transition keyword and its position
+            kw_positions = {kw: words.index(kw) for kw in
+                ('frequency', 'parks', 'pota', 'summits', 'sota', 'end', 'complete')
+                if kw in words}
+            if kw_positions:
+                kw = min(kw_positions, key=kw_positions.get)
+                idx = kw_positions[kw]
+                self._process_callsign_words(words[:idx])
                 self._finalize_callsign()
-                self.state = CommandState.PARSING_FREQ
-                idx = words.index('frequency')
-                self._process_freq_words(words[idx+1:])
-            elif 'parks' in words or 'pota' in words:
-                self._finalize_callsign()
-                self.current_command.network = 'pota'
-                self.state = CommandState.PARSING_NET
-            elif 'summits' in words or 'sota' in words:
-                self._finalize_callsign()
-                self.current_command.network = 'sota'
-                self.state = CommandState.PARSING_NET
-            elif 'end' in words:
-                self._finalize_callsign()
-                return self._finalize()
+                if kw in ('end', 'complete'):
+                    return self._finalize()
+                if kw == 'frequency':
+                    self.state = CommandState.PARSING_FREQ
+                elif kw in ('parks', 'pota'):
+                    self.current_command.network = 'pota'
+                    self.state = CommandState.PARSING_NET
+                elif kw in ('summits', 'sota'):
+                    self.current_command.network = 'sota'
+                    self.state = CommandState.PARSING_NET
+                after = words[idx+1:]
+                if after:
+                    return self.process(" ".join(after))
             else:
                 self._process_callsign_words(words)
 
         elif self.state == CommandState.PARSING_NET:
-            # Looking for network ID or frequency
             if 'frequency' in words:
-                self.state = CommandState.PARSING_FREQ
                 idx = words.index('frequency')
-                self._process_freq_words(words[idx+1:])
-            elif 'end' in words:
+                self._process_network_id(words[:idx])
+                self.state = CommandState.PARSING_FREQ
+                after = words[idx+1:]
+                if after:
+                    return self.process(" ".join(after))
+            elif 'end' in words or 'complete' in words:
+                kw = 'end' if 'end' in words else 'complete'
+                self._process_network_id(words[:words.index(kw)])
                 return self._finalize()
             else:
-                # Try to extract network ID (e.g., "K 1234" or "kilo one two three four")
                 self._process_network_id(words)
                 self._timeout_words += len(words)
 
         elif self.state == CommandState.PARSING_FREQ:
-            if 'end' in words:
+            if 'end' in words or 'complete' in words:
+                kw = 'end' if 'end' in words else 'complete'
+                self._process_freq_words(words[:words.index(kw)])
                 self._finalize_frequency()
                 return self._finalize()
             else:

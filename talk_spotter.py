@@ -18,6 +18,7 @@ import yaml
 import numpy as np
 
 from transcription import Transcriber, detect_keywords
+from grammar import build_grammar_json
 from sources.base import AudioSource
 from dx_cluster import DXCluster
 from pota_spotter import POTASpotter
@@ -136,19 +137,19 @@ def main():
         help="Test transcription with a WAV file (no radio needed)"
     )
     parser.add_argument(
-        "--spot-mode",
-        action="store_true",
-        help="Enable voice command parsing and spot posting"
-    )
-    parser.add_argument(
         "--no-post",
         action="store_true",
-        help="Parse commands but don't actually post spots (for testing)"
+        help="Parse voice commands but don't actually post spots (for testing)"
     )
     parser.add_argument(
         "--live",
         action="store_true",
         help="Live transcription mode - clean display of speech as it's heard"
+    )
+    parser.add_argument(
+        "--no-grammar",
+        action="store_true",
+        help="Disable grammar constraints (allow Vosk to output any English word)"
     )
     parser.add_argument(
         "--sota-login",
@@ -215,9 +216,12 @@ def main():
         print(f"Watching for keywords: {', '.join(keywords)}")
 
     # Test file mode - transcribe a WAV file and exit
+    use_grammar = not args.no_grammar
+    grammar_json = build_grammar_json() if use_grammar else None
+
     if args.test_file:
         print(f"Testing transcription with: {args.test_file}")
-        transcriber = Transcriber(model_path, sample_rate)
+        transcriber = Transcriber(model_path, sample_rate, grammar=grammar_json)
         transcriber.start()
 
         with wave.open(args.test_file, 'rb') as wf:
@@ -282,23 +286,20 @@ def main():
         sys.exit(0)
 
     # Create transcriber
-    transcriber = Transcriber(model_path, sample_rate)
+    transcriber = Transcriber(model_path, sample_rate, grammar=grammar_json)
 
-    # Create command parser if spot mode enabled
-    cmd_parser = None
-    dx_cluster = None
-    if args.spot_mode:
-        cmd_parser = CommandParser(wake_phrase="talk spotter")
-        print("Spot mode enabled - say 'talk spotter' to start a command")
+    # Create command parser
+    cmd_parser = CommandParser(wake_phrase="talk spotter")
+    print("Say 'talk spotter' to start a spot command")
 
-        # Check callsign is configured
-        if not args.no_post:
-            if not config.callsign:
-                print("Warning: No callsign in config - spots will not be posted")
-            else:
-                dx_host = config.dx_cluster.get('host')
-                if dx_host:
-                    print(f"Will post spots as {config.callsign} to {dx_host}")
+    # Check callsign is configured
+    if not args.no_post:
+        if not config.callsign:
+            print("Warning: No callsign in config - spots will not be posted")
+        else:
+            dx_host = config.dx_cluster.get('host')
+            if dx_host:
+                print(f"Will post spots as {config.callsign} to {dx_host}")
 
     # Create audio source
     print(f"Radio source: {config.radio}")
@@ -491,10 +492,6 @@ def main():
                 if command and command.is_valid():
                     post_spot(command)
 
-            # Feed partials to command parser for real-time feedback
-            if partial and partial != prev_partial and cmd_parser:
-                cmd_parser.process(partial)
-
             if partial:
                 last_partial = partial
 
@@ -510,11 +507,10 @@ def main():
         else:
             print("\n" + "=" * 50)
             print("Transcription started. Press Ctrl+C to stop.")
-            if args.spot_mode:
-                print("Say 'talk spotter' followed by:")
-                print("  'call' + NATO phonetic callsign")
-                print("  'frequency' + spoken frequency (e.g., 'one four point two five' or 'one four two five zero')")
-                print("  'end' to post the spot")
+            print("Say 'talk spotter' followed by:")
+            print("  'call' + NATO phonetic callsign")
+            print("  'frequency' + spoken frequency (e.g., 'one four point two five' or 'one four two five zero')")
+            print("  'end' to post the spot")
             print("=" * 50 + "\n")
 
         # Main loop - check for timeout periodically

@@ -124,12 +124,7 @@ venv/bin/python talk_spotter.py --radio kiwisdr
 
 ### Voice command mode
 
-Enable spot posting via voice commands:
-```bash
-venv/bin/python talk_spotter.py --spot-mode
-```
-
-**Voice command format:**
+Spot posting via voice commands is enabled by default. **Voice command format:**
 1. Say "talk spotter" (wake phrase)
 2. Say "call" followed by the callsign in NATO phonetics (e.g., "whiskey one alpha whiskey")
 3. (Optional) Say "parks" for POTA or "summits" for SOTA, followed by the reference (e.g., "kilo dash one two three four" for K-1234, or "whiskey four charlie slash charlie mike dash zero zero one" for W4C/CM-001)
@@ -161,7 +156,7 @@ POTA spots require the park reference (e.g., K-1234). Speak it as "kilo dash one
 
 Parse voice commands without actually posting:
 ```bash
-venv/bin/python talk_spotter.py --spot-mode --no-post
+venv/bin/python talk_spotter.py --no-post
 ```
 
 ### Live transcription
@@ -172,6 +167,17 @@ venv/bin/python talk_spotter.py --live
 ```
 
 Text appears as it's recognized, updating in place until each phrase is finalized.
+
+### Grammar-constrained recognition
+
+By default, Vosk is constrained to only the vocabulary used in Talk Spotter commands: NATO phonetics, spoken number words, and command keywords like "call", "frequency", "end", etc. This reduces false positives from background radio noise and improves accuracy on the words that matter.
+
+Use `--no-grammar` to disable this and allow Vosk to output any English word, which is useful for comparing results:
+```bash
+venv/bin/python talk_spotter.py --no-grammar
+venv/bin/python talk_spotter.py --live --no-grammar
+venv/bin/python talk_spotter.py --test-file recording.wav --no-grammar
+```
 
 ### Debug audio
 
@@ -190,7 +196,7 @@ venv/bin/python talk_spotter.py --test-file recording.wav
 ```
 usage: talk_spotter.py [-h] [--config CONFIG] [--radio {kiwisdr,rtl_sdr}]
                        [--debug] [--save-wav FILE] [--test-file FILE]
-                       [--spot-mode] [--no-post] [--live]
+                       [--no-post] [--live] [--no-grammar]
                        [--sota-login] [--sota-logout] [--sota-status]
 
 options:
@@ -201,9 +207,9 @@ options:
   --debug, -d           Enable debug logging
   --save-wav FILE       Save received audio to WAV file for debugging
   --test-file FILE      Test transcription with a WAV file (no radio needed)
-  --spot-mode           Enable voice command parsing and spot posting
-  --no-post             Parse commands but don't actually post spots
+  --no-post             Parse voice commands but don't actually post spots
   --live                Live transcription mode - clean real-time display
+  --no-grammar          Disable grammar constraints (allow any English word)
   --sota-login          Login to SOTA (one-time setup for spot posting)
   --sota-logout         Logout from SOTA (clear stored tokens)
   --sota-status         Check SOTA authentication status
@@ -238,7 +244,7 @@ To run Talk Spotter automatically on boot (useful for a dedicated Pi), create a 
    Type=simple
    User=pi
    WorkingDirectory=/home/pi/talk-spotter
-   ExecStart=/home/pi/talk-spotter/venv/bin/python talk_spotter.py --spot-mode
+   ExecStart=/home/pi/talk-spotter/venv/bin/python talk_spotter.py
    Restart=on-failure
    RestartSec=10
 
@@ -279,6 +285,7 @@ Enable hardware AGC (`agc: true`) and use direct sampling (`direct_sampling: 2`)
 - Ensure audio is clear (check with `--save-wav`)
 - Try a larger Vosk model for better accuracy
 - Speak clearly and use standard phonetics for callsigns
+- Grammar constraints are on by default; use `--no-grammar` to disable if needed
 
 ### Module Not Found Error
 
