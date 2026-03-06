@@ -1,3 +1,15 @@
+talk-spotter (1.0.0) stable; urgency=medium
+
+  * Add Vosk grammar constraints for improved command recognition accuracy
+  * Remove --spot-mode flag; spotting is now always enabled
+  * Add --no-grammar flag to disable vocabulary constraints
+  * Add "complete" as an alternative to "end" for finishing commands
+  * Fix voice command parsing when entire command is spoken in one utterance
+  * Fix premature timeout caused by partial results being fed to command parser
+  * Fix frequency not being parsed when spoken in the same utterance as "end"
+
+ -- Evan Boyar <evanboyar@proton.me>  Thu, 06 Mar 2026 12:00:00 -0500
+
 talk-spotter (0.2.0) stable; urgency=medium
 
   * Add POTA spot posting support
