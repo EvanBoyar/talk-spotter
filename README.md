@@ -126,16 +126,27 @@ venv/bin/python talk_spotter.py --radio kiwisdr
 
 Spot posting via voice commands is enabled by default. **Voice command format:**
 1. Say "talk spotter" (wake phrase)
-2. Say "call" followed by the callsign in NATO phonetics (e.g., "whiskey one alpha whiskey")
+2. Say "call" (or "callsign" / "call sign") followed by the callsign in NATO phonetics (e.g., "whiskey one alpha whiskey")
 3. (Optional) Say "parks" for POTA or "summits" for SOTA, followed by the reference (e.g., "kilo dash one two three four" for K-1234, or "whiskey four charlie slash charlie mike dash zero zero one" for W4C/CM-001)
-4. Say "frequency" followed by the frequency (e.g., "one four point two one nine" for 14219 kHz, or "one four two one nine" for 14219 kHz)
-5. Say "end" to post the spot (or wait 30 seconds for auto-complete)
+4. Say "frequency" followed by the frequency (e.g., "one four point two one nine" for 14.219 MHz, "one four two one nine" for 14219 kHz, or "twenty eight decimal five" for 28.5 MHz)
+5. Say "end" to post the spot
+
+**Fields can be spoken in any order.** "frequency ... call ... end" works just as well as "call ... frequency ... end".
+
+If you make a mistake, say **"cancel"** to discard the current command and return to idle without posting anything.
+
+If you don't say "end", the command will auto-complete after ~10 seconds of silence if a valid callsign and frequency were heard. Saying "talk spotter" at any point restarts the command from scratch.
 
 **Examples:**
 
 Basic DX Cluster spot:
 ```
 "talk spotter call whiskey one alpha whiskey frequency one four point two one nine end"
+```
+
+Same spot, frequency first:
+```
+"talk spotter frequency one four point two one nine call whiskey one alpha whiskey end"
 ```
 
 POTA spot (posts to both POTA and DX Cluster):
@@ -148,7 +159,7 @@ SOTA spot (posts to both SOTA and DX Cluster):
 "talk spotter call whiskey one alpha whiskey summits whiskey four charlie slash charlie mike dash zero zero one frequency one four point two one nine end"
 ```
 
-**Note:** Frequencies with a decimal point are interpreted as MHz and converted to kHz internally. Frequencies without a decimal (like "one four two one nine") are interpreted as kHz directly. If you don't say "end", the command will auto-complete after 30 seconds if a valid callsign and frequency were parsed. Saying "talk spotter" again will restart the command.
+**Frequency formats:** A decimal point is interpreted as MHz and converted to kHz internally. No decimal is interpreted as kHz directly. Compound number words like "twenty eight" and "fourteen" are understood, so "twenty eight decimal five" gives 28.5 MHz = 28500 kHz.
 
 POTA spots require the park reference (e.g., K-1234). Speak it as "kilo dash one two three four" using NATO phonetics for letters and spoken numbers for digits.
 

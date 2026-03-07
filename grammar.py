@@ -28,9 +28,15 @@ _NATO_PHRASES = [
     "x ray",
 ]
 
+# Multi-word keyword aliases normalized by the parser before buffering.
+_KEYWORD_PHRASES = [
+    "call sign",
+]
+
 # Single-word command keywords used by the state machine.
 _COMMAND_WORDS = [
     "call",
+    "callsign",
     "frequency",
     "parks",
     "summits",
@@ -38,6 +44,7 @@ _COMMAND_WORDS = [
     "sota",
     "end",
     "complete",
+    "cancel",
 ]
 
 # Separators used in frequency and network ID parsing.
@@ -68,6 +75,7 @@ _UNK = ["[unk]"]
 COMMAND_GRAMMAR_WORDS: list[str] = (
     _WAKE_PHRASES
     + _NATO_PHRASES
+    + _KEYWORD_PHRASES
     + _COMMAND_WORDS
     + _SEPARATORS
     + _NATO_WORDS
