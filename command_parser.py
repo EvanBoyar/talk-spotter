@@ -143,6 +143,7 @@ class CommandParser:
     # Keywords that delimit field sections in the buffer
     _FIELD_KEYWORDS = frozenset({'call', 'frequency', 'parks', 'pota', 'summits', 'sota'})
     _END_KEYWORDS = frozenset({'end', 'complete'})
+    _CANCEL_KEYWORDS = frozenset({'cancel'})
     _ALL_KEYWORDS = _FIELD_KEYWORDS | _END_KEYWORDS
 
     # Common misheard variations of "talk spotter"
@@ -218,8 +219,15 @@ class CommandParser:
         if self.state == CommandState.IDLE:
             return None
 
-        # LISTENING: clean words and add to buffer
+        # LISTENING: clean and normalize words before buffering
         words = self._merge_xray([w.strip('.,!?') for w in text_lower.split()])
+        words = self._normalize_keywords(words)
+
+        # Cancel: discard everything and return to idle
+        if any(w in self._CANCEL_KEYWORDS for w in words):
+            print("[CANCEL] Command cancelled, returning to idle.")
+            self.reset()
+            return None
 
         # Check if this utterance contains the end keyword
         end_idx = next((i for i, w in enumerate(words) if w in self._END_KEYWORDS), None)
@@ -268,11 +276,17 @@ class CommandParser:
         """
         Scan the accumulated word buffer for field keywords and extract
         each field from the slice between its keyword and the next one.
-        Field order does not matter.
+        Field order does not matter. If a keyword appears multiple times,
+        only the last occurrence is used — it overrides all earlier ones.
         """
         buf = self._buffer
-        # Collect (position, keyword) pairs for all known keywords
-        kw_positions = [(i, w) for i, w in enumerate(buf) if w in self._ALL_KEYWORDS]
+        # Keep only the last occurrence of each keyword so repeated keywords
+        # (e.g. "call ... call ...") use the most recent section.
+        last_seen: dict = {}
+        for i, w in enumerate(buf):
+            if w in self._ALL_KEYWORDS:
+                last_seen[w] = i
+        kw_positions = sorted((i, w) for w, i in last_seen.items())
 
         for j, (i, kw) in enumerate(kw_positions):
             if kw in self._END_KEYWORDS:
@@ -341,6 +355,28 @@ class CommandParser:
                     continue
             merged.append(words[i])
             i += 1
+        return merged
+
+    @staticmethod
+    def _normalize_keywords(words: list) -> list:
+        """
+        Normalize keyword aliases so the rest of the pipeline sees canonical forms.
+
+        - "callsign"          → "call"
+        - ["call", "sign"]    → ["call"]
+        """
+        merged = []
+        i = 0
+        while i < len(words):
+            if words[i] == 'callsign':
+                merged.append('call')
+                i += 1
+            elif words[i] == 'call' and i + 1 < len(words) and words[i + 1] == 'sign':
+                merged.append('call')
+                i += 2
+            else:
+                merged.append(words[i])
+                i += 1
         return merged
 
     @staticmethod
