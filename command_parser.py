@@ -318,8 +318,23 @@ class CommandParser:
                 return self._try_auto_finalize()
         return None
 
+    @staticmethod
+    def _merge_xray(words: list) -> list:
+        """Merge ["x", "ray"] bigrams into ["xray"] (Vosk splits x-ray into two tokens)."""
+        merged = []
+        i = 0
+        while i < len(words):
+            if words[i] == 'x' and i + 1 < len(words) and words[i + 1] == 'ray':
+                merged.append('xray')
+                i += 2
+            else:
+                merged.append(words[i])
+                i += 1
+        return merged
+
     def _process_callsign_words(self, words: list):
         """Extract callsign characters from NATO phonetic words."""
+        words = self._merge_xray(words)
         for word in words:
             word = word.lower().strip('.,!?')
             if word in NATO_TO_LETTER:
@@ -382,6 +397,7 @@ class CommandParser:
         # This is tricky - IDs like "K-1234" might come as "kilo dash one two three four"
         # or "K 1234" or various other forms
         # For now, collect alphanumeric parts
+        words = self._merge_xray(words)
         parts = []
         for word in words:
             word = word.lower().strip('.,!?')

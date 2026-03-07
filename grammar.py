@@ -22,6 +22,12 @@ _WAKE_PHRASES = [
     "talks spotter",
 ]
 
+# Multi-word NATO entries: "x-ray" must be expressed as two tokens since
+# Vosk grammar tokens cannot contain hyphens.
+_NATO_PHRASES = [
+    "x ray",
+]
+
 # Single-word command keywords used by the state machine.
 _COMMAND_WORDS = [
     "call",
@@ -61,6 +67,7 @@ _UNK = ["[unk]"]
 
 COMMAND_GRAMMAR_WORDS: list[str] = (
     _WAKE_PHRASES
+    + _NATO_PHRASES
     + _COMMAND_WORDS
     + _SEPARATORS
     + _NATO_WORDS
