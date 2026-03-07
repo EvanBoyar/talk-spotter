@@ -430,11 +430,13 @@ def main():
             return False
 
     # Audio processing state
-    audio_buffer = b""
+    audio_buffer = bytearray()
     last_partial = ""
     last_partial_len = [0]  # Track length for clearing line in live mode
     target_chunk_size = 8000  # ~0.25 seconds at 16kHz
     chunks_received = [0]
+    stable_partial = [""]  # Last seen partial text
+    stable_partial_since = [0.0]  # When partial text last changed
 
     def audio_callback(audio_samples):
         """Process incoming audio samples."""
@@ -455,10 +457,28 @@ def main():
 
         # Process when we have enough data
         while len(audio_buffer) >= target_chunk_size:
-            chunk = audio_buffer[:target_chunk_size]
-            audio_buffer = audio_buffer[target_chunk_size:]
+            chunk = bytes(audio_buffer[:target_chunk_size])
+            del audio_buffer[:target_chunk_size]
 
             final, partial = transcriber.process_audio(chunk)
+
+            # Force-flush Vosk when partial text has been stable for 2s
+            # (Vosk decided on the words but won't commit to a final result)
+            now = time.time()
+            if not final and partial:
+                if partial != stable_partial[0]:
+                    stable_partial[0] = partial
+                    stable_partial_since[0] = now
+                elif now - stable_partial_since[0] > 2.0:
+                    flush_text = transcriber.get_final_result()
+                    if flush_text:
+                        final = flush_text
+                    stable_partial[0] = ""
+                    stable_partial_since[0] = now
+
+            if final:
+                stable_partial[0] = ""
+                stable_partial_since[0] = now
 
             prev_partial = last_partial
             if args.live:

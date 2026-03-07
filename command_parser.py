@@ -201,7 +201,6 @@ class CommandParser:
             return None
 
         text_lower = text.lower().strip()
-        self.current_command.raw_text.append(text)
 
         # Check for wake phrase in any state (can restart)
         for wp in self.wake_phrases:
@@ -218,6 +217,8 @@ class CommandParser:
 
         if self.state == CommandState.IDLE:
             return None
+
+        self.current_command.raw_text.append(text)
 
         # LISTENING: clean and normalize words before buffering
         words = self._merge_xray([w.strip('.,!?') for w in text_lower.split()])
@@ -400,6 +401,8 @@ class CommandParser:
             word = word.lower().strip('.,!?')
             if word in NATO_TO_LETTER:
                 self._callsign_parts.append(NATO_TO_LETTER[word])
+            elif word in ('slash', 'stroke'):
+                self._callsign_parts.append('/')
             elif word.isalnum() and len(word) == 1:
                 # Single letter/digit spoken directly
                 self._callsign_parts.append(word.upper())
@@ -521,6 +524,8 @@ def parse_nato_callsign(text: str) -> str:
         word = word.strip('.,!?')
         if word in NATO_TO_LETTER:
             result.append(NATO_TO_LETTER[word])
+        elif word in ('slash', 'stroke'):
+            result.append('/')
         elif word.isalnum() and len(word) == 1:
             result.append(word.upper())
 
