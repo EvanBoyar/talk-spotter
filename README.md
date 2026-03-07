@@ -129,7 +129,9 @@ Spot posting via voice commands is enabled by default. **Voice command format:**
 2. Say "call" (or "callsign" / "call sign") followed by the callsign in NATO phonetics (e.g., "whiskey one alpha whiskey")
 3. (Optional) Say "parks" for POTA or "summits" for SOTA, followed by the reference (e.g., "kilo dash one two three four" for K-1234, or "whiskey four charlie slash charlie mike dash zero zero one" for W4C/CM-001)
 4. Say "frequency" followed by the frequency (e.g., "one four point two one nine" for 14.219 MHz, "one four two one nine" for 14219 kHz, or "twenty eight decimal five" for 28.5 MHz)
-5. Say "end" to post the spot
+5. Say "end" or "complete" to post the spot
+
+**Speak slowly and clearly.** I've found pausing slightly after wake words is helpful. Also it's helpful to say numbers more like "seven point two zero zero" than "sevenpointtwozerozero".
 
 **Fields can be spoken in any order.** "frequency ... call ... end" works just as well as "call ... frequency ... end".
 
@@ -146,12 +148,12 @@ Basic DX Cluster spot:
 
 Same spot, frequency first:
 ```
-"talk spotter frequency one four point two one nine call whiskey one alpha whiskey end"
+"talk spotter frequency one four point two one nine call whiskey one alpha whiskey complete"
 ```
 
 POTA spot (posts to both POTA and DX Cluster):
 ```
-"talk spotter call whiskey one alpha whiskey parks kilo dash one two three four frequency one four point two one nine end"
+"talk spotter call sign whiskey one alpha whiskey parks kilo dash one two three four frequency one four point two one nine end"
 ```
 
 SOTA spot (posts to both SOTA and DX Cluster):
@@ -159,7 +161,7 @@ SOTA spot (posts to both SOTA and DX Cluster):
 "talk spotter call whiskey one alpha whiskey summits whiskey four charlie slash charlie mike dash zero zero one frequency one four point two one nine end"
 ```
 
-**Frequency formats:** A decimal point is interpreted as MHz and converted to kHz internally. No decimal is interpreted as kHz directly. Compound number words like "twenty eight" and "fourteen" are understood, so "twenty eight decimal five" gives 28.5 MHz = 28500 kHz.
+**Frequency formats:** A decimal point is interpreted as MHz and converted to kHz internally. No decimal is interpreted as kHz directly. Compound number words like "twenty eight" and "fourteen" BEFORE THE DECIMAL are understood, so "twenty eight decimal five" gives 28.5 MHz = 28500 kHz.
 
 POTA spots require the park reference (e.g., K-1234). Speak it as "kilo dash one two three four" using NATO phonetics for letters and spoken numbers for digits.
 
