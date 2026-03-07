@@ -8,6 +8,8 @@ Parses spoken commands following the protocol:
 - Optional: "parks" (POTA) or "summits" (SOTA) with identifier
 - "frequency" + spoken frequency in MHz
 - "end" to complete
+
+Fields may appear in any order after the wake phrase.
 """
 
 import time
@@ -92,13 +94,9 @@ SPOKEN_NUMBERS = {
 
 
 class CommandState(Enum):
-    """State machine states for command parsing."""
-    IDLE = "idle"                    # Waiting for wake phrase
-    LISTENING = "listening"          # Heard wake phrase, waiting for command
-    PARSING_CALL = "parsing_call"    # Parsing callsign
-    PARSING_NET = "parsing_net"      # Parsing network (POTA/SOTA)
-    PARSING_FREQ = "parsing_freq"    # Parsing frequency
-    COMPLETE = "complete"            # Command complete
+    """Parser states."""
+    IDLE = "idle"            # Waiting for wake phrase
+    LISTENING = "listening"  # Accumulating words for a command
 
 
 @dataclass
@@ -127,7 +125,12 @@ class SpotCommand:
 
 class CommandParser:
     """
-    State machine for parsing voice commands.
+    Collect-then-parse voice command processor.
+
+    Once the wake phrase is heard, all subsequent words are buffered until
+    "end" or "complete" is spoken (or a timeout fires). The full buffer is
+    then scanned for field keywords and each field is extracted from the
+    slice between its keyword and the next one — regardless of order.
 
     Usage:
         parser = CommandParser()
@@ -136,6 +139,11 @@ class CommandParser:
             if command and command.is_valid():
                 # Post the spot
     """
+
+    # Keywords that delimit field sections in the buffer
+    _FIELD_KEYWORDS = frozenset({'call', 'frequency', 'parks', 'pota', 'summits', 'sota'})
+    _END_KEYWORDS = frozenset({'end', 'complete'})
+    _ALL_KEYWORDS = _FIELD_KEYWORDS | _END_KEYWORDS
 
     # Common misheard variations of "talk spotter"
     WAKE_PHRASE_ALIASES = [
@@ -160,19 +168,18 @@ class CommandParser:
         self.command_timeout = command_timeout  # Seconds before auto-finalizing
         self.state = CommandState.IDLE
         self.current_command = SpotCommand()
-        self._callsign_parts = []
-        self._freq_parts = []
-        self._timeout_words = 0  # Count words since last meaningful input
-        self.max_idle_words = 20  # Reset if too many words without progress
-        self._command_start_time: Optional[float] = None  # When we heard wake phrase
+        self._buffer: list = []          # Words accumulated since wake phrase
+        self._callsign_parts: list = []
+        self._freq_parts: list = []
+        self._command_start_time: Optional[float] = None
 
     def reset(self):
         """Reset parser to idle state."""
         self.state = CommandState.IDLE
         self.current_command = SpotCommand()
+        self._buffer = []
         self._callsign_parts = []
         self._freq_parts = []
-        self._timeout_words = 0
         self._command_start_time = None
 
     def process(self, text: str) -> Optional[SpotCommand]:
@@ -189,8 +196,6 @@ class CommandParser:
             return None
 
         text_lower = text.lower().strip()
-        words = text_lower.split()
-
         self.current_command.raw_text.append(text)
 
         # Check for wake phrase in any state (can restart)
@@ -199,110 +204,40 @@ class CommandParser:
             if idx != -1:
                 self.reset()
                 self.state = CommandState.LISTENING
-                self._timeout_words = 0
                 self._command_start_time = time.time()
                 print(f"[WAKE] Heard wake phrase, listening for command...")
-                # Process any words spoken after the wake phrase in the same utterance
                 remaining = text_lower[idx + len(wp):].strip()
                 if remaining:
                     return self.process(remaining)
                 return None
 
-        # Check for time-based timeout (auto-finalize if we have enough data)
-        if self._command_start_time and self.state != CommandState.IDLE:
+        if self.state == CommandState.IDLE:
+            return None
+
+        # LISTENING: clean words and add to buffer
+        words = self._merge_xray([w.strip('.,!?') for w in text_lower.split()])
+
+        # Check if this utterance contains the end keyword
+        end_idx = next((i for i, w in enumerate(words) if w in self._END_KEYWORDS), None)
+        if end_idx is not None:
+            self._buffer.extend(words[:end_idx])
+            return self._parse_and_finalize()
+
+        self._buffer.extend(words)
+
+        # Time-based timeout
+        if self._command_start_time:
             elapsed = time.time() - self._command_start_time
             if elapsed > self.command_timeout:
                 print(f"[TIMEOUT] {elapsed:.1f}s elapsed, attempting to finalize...")
-                return self._try_auto_finalize()
+                return self._parse_and_finalize()
 
-        # State machine
-        if self.state == CommandState.IDLE:
-            # Just waiting for wake phrase
-            return None
-
-        elif self.state == CommandState.LISTENING:
-            if 'call' in words:
-                self.state = CommandState.PARSING_CALL
-                after = words[words.index('call')+1:]
-                if after:
-                    return self.process(" ".join(after))
-            elif 'end' in words or 'complete' in words:
-                return self._finalize()
-            else:
-                self._timeout_words += len(words)
-
-        elif self.state == CommandState.PARSING_CALL:
-            # Find the first transition keyword and its position
-            kw_positions = {kw: words.index(kw) for kw in
-                ('frequency', 'parks', 'pota', 'summits', 'sota', 'end', 'complete')
-                if kw in words}
-            if kw_positions:
-                kw = min(kw_positions, key=kw_positions.get)
-                idx = kw_positions[kw]
-                self._process_callsign_words(words[:idx])
-                self._finalize_callsign()
-                if kw in ('end', 'complete'):
-                    return self._finalize()
-                if kw == 'frequency':
-                    self.state = CommandState.PARSING_FREQ
-                elif kw in ('parks', 'pota'):
-                    self.current_command.network = 'pota'
-                    self.state = CommandState.PARSING_NET
-                elif kw in ('summits', 'sota'):
-                    self.current_command.network = 'sota'
-                    self.state = CommandState.PARSING_NET
-                after = words[idx+1:]
-                if after:
-                    return self.process(" ".join(after))
-            else:
-                self._process_callsign_words(words)
-
-        elif self.state == CommandState.PARSING_NET:
-            if 'frequency' in words:
-                idx = words.index('frequency')
-                self._process_network_id(words[:idx])
-                self.state = CommandState.PARSING_FREQ
-                after = words[idx+1:]
-                if after:
-                    return self.process(" ".join(after))
-            elif 'end' in words or 'complete' in words:
-                kw = 'end' if 'end' in words else 'complete'
-                self._process_network_id(words[:words.index(kw)])
-                return self._finalize()
-            else:
-                self._process_network_id(words)
-                self._timeout_words += len(words)
-
-        elif self.state == CommandState.PARSING_FREQ:
-            if 'end' in words or 'complete' in words:
-                kw = 'end' if 'end' in words else 'complete'
-                self._process_freq_words(words[:words.index(kw)])
-                self._finalize_frequency()
-                return self._finalize()
-            else:
-                self._process_freq_words(words)
-
-        # Check for word-based timeout (too many unrecognized words)
-        if self._timeout_words > self.max_idle_words:
-            print(f"[TIMEOUT] Too many words without progress, attempting to finalize...")
-            return self._try_auto_finalize()
+        # Safety valve: reset if buffer grows unreasonably large
+        if len(self._buffer) > 60:
+            print(f"[TIMEOUT] Buffer too large, attempting to finalize...")
+            return self._parse_and_finalize()
 
         return None
-
-    def _try_auto_finalize(self) -> Optional[SpotCommand]:
-        """Try to finalize the command; reset if invalid."""
-        self._finalize_callsign()
-        self._finalize_frequency()
-
-        if self.current_command.is_valid():
-            command = self.current_command
-            print(f"[AUTO-COMPLETE] {command}")
-            self.reset()
-            return command
-        else:
-            print(f"[INCOMPLETE] Cannot auto-complete - call={self.current_command.callsign}, freq={self.current_command.frequency_khz}")
-            self.reset()
-            return None
 
     def check_timeout(self) -> Optional[SpotCommand]:
         """
@@ -315,8 +250,52 @@ class CommandParser:
             elapsed = time.time() - self._command_start_time
             if elapsed > self.command_timeout:
                 print(f"[TIMEOUT] {elapsed:.1f}s elapsed (no new input), attempting to finalize...")
-                return self._try_auto_finalize()
+                return self._parse_and_finalize()
         return None
+
+    def _parse_buffer(self):
+        """
+        Scan the accumulated word buffer for field keywords and extract
+        each field from the slice between its keyword and the next one.
+        Field order does not matter.
+        """
+        buf = self._buffer
+        # Collect (position, keyword) pairs for all known keywords
+        kw_positions = [(i, w) for i, w in enumerate(buf) if w in self._ALL_KEYWORDS]
+
+        for j, (i, kw) in enumerate(kw_positions):
+            if kw in self._END_KEYWORDS:
+                continue
+            # Section: words after this keyword up to the start of the next keyword
+            next_i = kw_positions[j + 1][0] if j + 1 < len(kw_positions) else len(buf)
+            section = buf[i + 1:next_i]
+
+            if kw == 'call':
+                self._process_callsign_words(section)
+            elif kw == 'frequency':
+                self._process_freq_words(section)
+            elif kw in ('parks', 'pota'):
+                self.current_command.network = 'pota'
+                self._process_network_id(section)
+            elif kw in ('summits', 'sota'):
+                self.current_command.network = 'sota'
+                self._process_network_id(section)
+
+    def _parse_and_finalize(self) -> Optional[SpotCommand]:
+        """Parse the buffer and return the command if valid, else reset."""
+        self._parse_buffer()
+        self._finalize_callsign()
+        self._finalize_frequency()
+
+        if self.current_command.is_valid():
+            command = self.current_command
+            print(f"[COMPLETE] {command}")
+            self.reset()
+            return command
+        else:
+            print(f"[INCOMPLETE] Missing required fields - call={self.current_command.callsign}, freq={self.current_command.frequency_khz}")
+            self.reset()
+            return None
 
     @staticmethod
     def _merge_xray(words: list) -> list:
@@ -339,11 +318,9 @@ class CommandParser:
             word = word.lower().strip('.,!?')
             if word in NATO_TO_LETTER:
                 self._callsign_parts.append(NATO_TO_LETTER[word])
-                self._timeout_words = 0
             elif word.isalnum() and len(word) == 1:
                 # Single letter/digit spoken directly
                 self._callsign_parts.append(word.upper())
-                self._timeout_words = 0
 
     def _finalize_callsign(self):
         """Convert collected parts to callsign."""
@@ -358,13 +335,10 @@ class CommandParser:
             word = word.lower().strip('.,!?')
             if word in SPOKEN_NUMBERS:
                 self._freq_parts.append(SPOKEN_NUMBERS[word])
-                self._timeout_words = 0
             elif word in ('decimal', 'point', 'dot'):
                 self._freq_parts.append('.')
-                self._timeout_words = 0
             elif word.isdigit():
                 self._freq_parts.append(word)
-                self._timeout_words = 0
 
     def _finalize_frequency(self):
         """Convert collected parts to frequency in kHz."""
@@ -412,21 +386,6 @@ class CommandParser:
 
         if parts:
             self.current_command.network_id = ''.join(parts)
-
-    def _finalize(self) -> Optional[SpotCommand]:
-        """Finalize and return the command."""
-        self._finalize_callsign()
-        self._finalize_frequency()
-
-        if self.current_command.is_valid():
-            command = self.current_command
-            print(f"[COMPLETE] {command}")
-            self.reset()
-            return command
-        else:
-            print(f"[INCOMPLETE] Missing required fields - call={self.current_command.callsign}, freq={self.current_command.frequency_khz}")
-            self.reset()
-            return None
 
 
 def parse_frequency_text(text: str) -> Optional[float]:
