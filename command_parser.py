@@ -160,18 +160,21 @@ class CommandParser:
     ]
 
     def __init__(self, wake_phrase: str = "talk spotter",
-                 command_timeout: float = 30.0):
+                 idle_timeout: float = 10.0,
+                 session_timeout: float = 60.0):
         self.wake_phrase = wake_phrase.lower()
         self.wake_phrases = [wp.lower() for wp in self.WAKE_PHRASE_ALIASES]
         if self.wake_phrase not in self.wake_phrases:
             self.wake_phrases.append(self.wake_phrase)
-        self.command_timeout = command_timeout  # Seconds before auto-finalizing
+        self.idle_timeout = idle_timeout      # Seconds of silence before auto-finalizing
+        self.session_timeout = session_timeout  # Hard cap from wake phrase
         self.state = CommandState.IDLE
         self.current_command = SpotCommand()
         self._buffer: list = []          # Words accumulated since wake phrase
         self._callsign_parts: list = []
         self._freq_parts: list = []
         self._command_start_time: Optional[float] = None
+        self._last_input_time: Optional[float] = None
 
     def reset(self):
         """Reset parser to idle state."""
@@ -181,6 +184,7 @@ class CommandParser:
         self._callsign_parts = []
         self._freq_parts = []
         self._command_start_time = None
+        self._last_input_time = None
 
     def process(self, text: str) -> Optional[SpotCommand]:
         """
@@ -224,13 +228,12 @@ class CommandParser:
             return self._parse_and_finalize()
 
         self._buffer.extend(words)
+        self._last_input_time = time.time()
 
-        # Time-based timeout
-        if self._command_start_time:
-            elapsed = time.time() - self._command_start_time
-            if elapsed > self.command_timeout:
-                print(f"[TIMEOUT] {elapsed:.1f}s elapsed, attempting to finalize...")
-                return self._parse_and_finalize()
+        # Session timeout: hard cap from wake phrase
+        if self._command_start_time and self._last_input_time - self._command_start_time > self.session_timeout:
+            print(f"[TIMEOUT] {self._last_input_time - self._command_start_time:.1f}s session cap, attempting to finalize...")
+            return self._parse_and_finalize()
 
         # Safety valve: reset if buffer grows unreasonably large
         if len(self._buffer) > 60:
@@ -241,16 +244,24 @@ class CommandParser:
 
     def check_timeout(self) -> Optional[SpotCommand]:
         """
-        Check for time-based timeout without new input.
+        Check for timeout without new input.
 
         Call this periodically from the main loop to handle the case
         where the user goes silent after giving a partial command.
+
+        Two conditions trigger finalization:
+        - Idle timeout: no words received for idle_timeout seconds
+        - Session timeout: hard cap of session_timeout seconds from wake phrase
         """
-        if self._command_start_time and self.state != CommandState.IDLE:
-            elapsed = time.time() - self._command_start_time
-            if elapsed > self.command_timeout:
-                print(f"[TIMEOUT] {elapsed:.1f}s elapsed (no new input), attempting to finalize...")
-                return self._parse_and_finalize()
+        if self.state == CommandState.IDLE:
+            return None
+        now = time.time()
+        if self._last_input_time and now - self._last_input_time > self.idle_timeout:
+            print(f"[TIMEOUT] {now - self._last_input_time:.1f}s idle, attempting to finalize...")
+            return self._parse_and_finalize()
+        if self._command_start_time and now - self._command_start_time > self.session_timeout:
+            print(f"[TIMEOUT] {now - self._command_start_time:.1f}s session cap, attempting to finalize...")
+            return self._parse_and_finalize()
         return None
 
     def _parse_buffer(self):
@@ -297,6 +308,41 @@ class CommandParser:
             self.reset()
             return None
 
+    # Tens and units values for compound number merging (e.g. "twenty eight" → "28")
+    _COMPOUND_TENS = {
+        'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
+        'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+    }
+    _COMPOUND_UNITS = {
+        'one': 1, 'two': 2, 'to': 2, 'too': 2,
+        'three': 3, 'four': 4, 'for': 4,
+        'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'niner': 9,
+    }
+
+    @staticmethod
+    def _merge_compound_numbers(words: list) -> list:
+        """
+        Merge TENS+UNITS bigrams into a single compound number string.
+
+        Examples:
+            ["twenty", "eight"] -> ["28"]
+            ["twenty", "eight", "decimal", "five"] -> ["28", "decimal", "five"]
+            ["one", "four", "two"] -> ["one", "four", "two"]  (no tens word, unchanged)
+        """
+        merged = []
+        i = 0
+        while i < len(words):
+            tens_val = CommandParser._COMPOUND_TENS.get(words[i])
+            if tens_val is not None and i + 1 < len(words):
+                units_val = CommandParser._COMPOUND_UNITS.get(words[i + 1])
+                if units_val is not None:
+                    merged.append(str(tens_val + units_val))
+                    i += 2
+                    continue
+            merged.append(words[i])
+            i += 1
+        return merged
+
     @staticmethod
     def _merge_xray(words: list) -> list:
         """Merge ["x", "ray"] bigrams into ["xray"] (Vosk splits x-ray into two tokens)."""
@@ -331,6 +377,7 @@ class CommandParser:
 
     def _process_freq_words(self, words: list):
         """Extract frequency from spoken words."""
+        words = self._merge_compound_numbers(words)
         for word in words:
             word = word.lower().strip('.,!?')
             if word in SPOKEN_NUMBERS:
