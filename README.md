@@ -18,7 +18,6 @@ I suggest you set it and forget it on a Raspberry Pi. I've tested it on a 3 B+.
 - **DX Cluster integration**: Posts spots to the DX Cluster network
 - **POTA integration**: Posts spots directly to Parks on the Air
 - **SOTA integration**: Posts spots to Summits on the Air (OAuth authenticated), coming soon™ **(ignore SOTA instructions later in the code, it's mostly implemented but not working b/c the SOTA folks need to get back to me to grant me an API key)**
-- **Keyword detection**: Highlight specific words/phrases in transcription output
 - **Designed for Raspberry Pi**: Lightweight, minimal dependencies
 
 ## Band plan

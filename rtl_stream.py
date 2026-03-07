@@ -288,11 +288,6 @@ def main():
         help="Path to Vosk model"
     )
     parser.add_argument(
-        "--keywords", "-k",
-        nargs="+",
-        help="Keywords to detect"
-    )
-    parser.add_argument(
         "--save-wav",
         help="Save received audio to WAV file for debugging"
     )
@@ -323,11 +318,6 @@ def main():
         sys.exit(1)
 
     print("Vosk model loaded successfully")
-
-    # Keywords
-    keywords = args.keywords or []
-    if keywords:
-        print(f"Watching for keywords: {', '.join(keywords)}")
 
     # Create SDR stream
     rtl = RTLSDRStream(freq_hz, args.mode, sample_rate=args.sample_rate,
@@ -385,12 +375,7 @@ def main():
                 result = json.loads(recognizer.Result())
                 text = result.get("text", "")
                 if text:
-                    # Check for keywords
-                    found = [kw for kw in keywords if kw.lower() in text.lower()]
-                    if found:
-                        print(f"[MATCH] {text}  <-- {', '.join(found)}")
-                    else:
-                        print(f"[FINAL] {text}")
+                    print(f"[FINAL] {text}")
             else:
                 partial = json.loads(recognizer.PartialResult())
                 partial_text = partial.get("partial", "")

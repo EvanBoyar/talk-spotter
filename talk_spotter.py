@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 import numpy as np
 
-from transcription import Transcriber, detect_keywords
+from transcription import Transcriber
 from grammar import build_grammar_json
 from sources.base import AudioSource
 from dx_cluster import DXCluster
@@ -84,10 +84,6 @@ class Config:
         """Get sound card configuration."""
         return self.data.get("sound_card", {})
 
-    @property
-    def keywords(self) -> list:
-        """Get keywords to detect."""
-        return self.data.get("keywords", [])
 
 
 def create_source(config: Config):
@@ -210,11 +206,6 @@ def main():
     model_path = vosk_config.get("model_path", "vosk-model-small-en-us-0.15")
     sample_rate = vosk_config.get("sample_rate", 16000)
 
-    # Get keywords
-    keywords = config.keywords
-    if keywords:
-        print(f"Watching for keywords: {', '.join(keywords)}")
-
     # Test file mode - transcribe a WAV file and exit
     use_grammar = not args.no_grammar
     grammar_json = build_grammar_json() if use_grammar else None
@@ -265,22 +256,14 @@ def main():
                     data = samples.tobytes()
                 final, partial = transcriber.process_audio(data)
                 if final:
-                    found = detect_keywords(final, keywords)
-                    if found:
-                        print(f"[MATCH] {final}  <-- {', '.join(found)}")
-                    else:
-                        print(f"[FINAL] {final}")
+                    print(f"[FINAL] {final}")
                 elif partial:
                     print(f"[...] {partial}", end="\r", flush=True)
 
             # Get any remaining text
             final = transcriber.get_final_result()
             if final:
-                found = detect_keywords(final, keywords)
-                if found:
-                    print(f"[MATCH] {final}  <-- {', '.join(found)}")
-                else:
-                    print(f"[FINAL] {final}")
+                print(f"[FINAL] {final}")
 
         print("\nTest complete.")
         sys.exit(0)
@@ -497,11 +480,7 @@ def main():
             else:
                 # Standard mode with labels
                 if final:
-                    found = detect_keywords(final, keywords)
-                    if found:
-                        print(f"[MATCH] {final}  <-- {', '.join(found)}")
-                    else:
-                        print(f"[FINAL] {final}")
+                    print(f"[FINAL] {final}")
 
                 if partial and partial != prev_partial:
                     print(f"[...] {partial}", end="\r", flush=True)

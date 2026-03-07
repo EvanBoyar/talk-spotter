@@ -57,19 +57,3 @@ class Transcriber:
         result = json.loads(self.recognizer.FinalResult())
         return result.get("text", "")
 
-
-def detect_keywords(text: str, keywords: list) -> list:
-    """
-    Check if any keywords are present in the text.
-
-    Args:
-        text: Text to search in
-        keywords: List of keywords to look for
-
-    Returns:
-        List of found keywords (may be empty)
-    """
-    if not text or not keywords:
-        return []
-    text_lower = text.lower()
-    return [kw for kw in keywords if kw.lower() in text_lower]
