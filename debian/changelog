@@ -1,3 +1,35 @@
+talk-spotter (1.1.2) stable; urgency=medium
+
+  * Add 81 unit tests for command parser
+  * Fix Vosk not finalizing words in grammar-constrained mode by force-flushing
+    when partial text is stable for 2 seconds
+  * Fix unbounded raw_text growth in idle state
+  * Switch audio buffer to bytearray for in-place operations
+  * Support slash/stroke in callsigns (e.g., VP2E/W1AW, W1AW/VP2/P)
+  * Remove redundant keyword highlighting feature
+
+ -- Evan Boyar <evanboyar@proton.me>  Fri, 07 Mar 2026 12:00:00 -0500
+
+talk-spotter (1.1.0) stable; urgency=medium
+
+  * Rewrite command parser: fields can now be spoken in any order
+  * Add "callsign" / "call sign" as alternatives to "call"
+  * Add "cancel" command to abort without posting
+  * Add compound number word support (e.g., "twenty eight" -> 28)
+  * Repeated keywords now override earlier attempts (last wins)
+  * Idle timeout (10s) replaces fixed deadline from wake phrase
+  * Session timeout (60s) hard cap as safety net
+
+ -- Evan Boyar <evanboyar@proton.me>  Fri, 07 Mar 2026 02:00:00 -0500
+
+talk-spotter (1.0.1) stable; urgency=medium
+
+  * Fix NATO phonetic X-ray never being detected — Vosk splits "x-ray" into
+    two tokens ("x" and "ray") which are now merged before lookup
+  * Add "x ray" as a recognized two-word phrase in Vosk grammar
+
+ -- Evan Boyar <evanboyar@proton.me>  Thu, 06 Mar 2026 19:00:00 -0500
+
 talk-spotter (1.0.0) stable; urgency=medium
 
   * Add Vosk grammar constraints for improved command recognition accuracy
