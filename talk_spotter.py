@@ -36,8 +36,26 @@ class Config:
     def _load_config(self) -> dict:
         if self.config_path.exists():
             with open(self.config_path) as f:
-                return yaml.safe_load(f) or {}
-        return {}
+                data = yaml.safe_load(f) or {}
+        else:
+            data = {}
+        # Merge local overrides if present
+        local_path = self.config_path.parent / "config.local.yaml"
+        if local_path.exists():
+            with open(local_path) as f:
+                local = yaml.safe_load(f) or {}
+            data = self._deep_merge(data, local)
+        return data
+
+    @staticmethod
+    def _deep_merge(base: dict, override: dict) -> dict:
+        merged = base.copy()
+        for key, val in override.items():
+            if key in merged and isinstance(merged[key], dict) and isinstance(val, dict):
+                merged[key] = Config._deep_merge(merged[key], val)
+            else:
+                merged[key] = val
+        return merged
 
     @property
     def callsign(self) -> str:

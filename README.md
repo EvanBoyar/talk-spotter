@@ -92,6 +92,8 @@ Then activate the venv and run: `source venv/bin/activate && python talk_spotter
 
 Edit `config.yaml` to configure your setup. It's designed to be pretty human-readable.
 
+To keep personal settings out of git, create `config.local.yaml` with just the keys you want to override — it's gitignored and deep-merged on top of `config.yaml` at startup.
+
 **For HF SSB reception with the RTL-SDR**, you'll need to set "direct sampling: 2", which means we're, uh, directly sampling the Q branch, which is what you should use for HF. Use "direct sampling: 0" for UHF/VHF.
 
 **SOTA Setup:** SOTA requires one-time authentication. Run `venv/bin/python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.

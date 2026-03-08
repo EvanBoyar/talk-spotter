@@ -20,8 +20,8 @@ vosk-model-*/
 *.swp
 *.swo
 
-# Local config overrides (if you want to use a template pattern)
-# config.local.yaml
+# Local config overrides
+config.local.yaml
 
 # OS files
 .DS_Store

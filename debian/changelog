@@ -1,3 +1,11 @@
+talk-spotter (1.1.3) stable; urgency=medium
+
+  * Add config.local.yaml support for local overrides (deep-merged on top of
+    config.yaml, gitignored)
+  * Change default KiwiSDR host to public server (ssi.proxy.kiwisdr.com)
+
+ -- Evan Boyar <evanboyar@proton.me>  Fri, 07 Mar 2026 18:00:00 -0500
+
 talk-spotter (1.1.2) stable; urgency=medium
 
   * Add 81 unit tests for command parser

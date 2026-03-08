@@ -8,7 +8,7 @@ radio: "rtl_sdr"
 
 # KiwiSDR settings
 kiwisdr:
-  host: "22001.proxy.kiwisdr.com"  # Find more at http://kiwisdr.com/.public/
+  host: "ssi.proxy.kiwisdr.com"  # Find yours at http://rx.linkfanel.net or http://kiwisdr.com/public/
   port: 8073
   frequency: 7218  # kHz
   mode: "lsb"       # usb, lsb, am, cw, nbfm
@@ -49,3 +49,12 @@ pota:
 sota:
   enabled: true
 
+# This is basically just for if you're doing development work.
+# To override settings without modifying this file, create config.local.yaml
+# with just the values you want to change. Example:
+#
+#   callsign: "A1CALL"
+#   kiwisdr:
+#     host: "myserver.proxy.kiwisdr.com"
+#
+# config.local.yaml is gitignored and will not be committed. 
