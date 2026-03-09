@@ -98,9 +98,9 @@ class Config:
         return self.data.get("sota", {})
 
     @property
-    def sound_card(self) -> dict:
-        """Get sound card configuration."""
-        return self.data.get("sound_card", {})
+    def transceiver(self) -> dict:
+        """Get transceiver configuration."""
+        return self.data.get("transceiver", {})
 
 
 
@@ -114,9 +114,9 @@ def create_source(config: Config):
     elif radio == "rtl_sdr":
         from sources.rtlsdr import RTLSDRSource
         return RTLSDRSource(config.rtl_sdr)
-    elif radio == "sound_card":
-        from sources.sound_card import SoundCardSource
-        return SoundCardSource(config.sound_card)
+    elif radio == "transceiver":
+        from sources.transceiver import TransceiverSource
+        return TransceiverSource(config.transceiver)
     else:
         raise ValueError(f"Unknown radio type: {radio}")
 
@@ -132,7 +132,7 @@ def main():
     )
     parser.add_argument(
         "--radio", "-r",
-        choices=["kiwisdr", "rtl_sdr", "sound_card"],
+        choices=["kiwisdr", "rtl_sdr", "transceiver"],
         help="Radio source (overrides config)"
     )
     parser.add_argument(
@@ -166,6 +166,11 @@ def main():
         help="Disable grammar constraints (allow Vosk to output any English word)"
     )
     parser.add_argument(
+        "--list-audio",
+        action="store_true",
+        help="List available audio input devices and exit"
+    )
+    parser.add_argument(
         "--sota-login",
         action="store_true",
         help="Login to SOTA (one-time setup for spot posting)"
@@ -182,6 +187,23 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # List audio devices and exit
+    if args.list_audio:
+        try:
+            import soundcard
+        except ImportError:
+            print("Error: 'soundcard' package not installed.")
+            print("Install it with: pip install soundcard")
+            sys.exit(1)
+        mics = soundcard.all_microphones()
+        if not mics:
+            print("No audio input devices found.")
+        else:
+            print("Available audio input devices:")
+            for i, mic in enumerate(mics, 1):
+                print(f"  {i}. {mic.name}")
+        sys.exit(0)
 
     # Handle SOTA authentication commands (no radio needed)
     if args.sota_login:

@@ -72,7 +72,17 @@ _NUMBER_WORDS = [w for w in SPOKEN_NUMBERS.keys() if w != "o"]
 # forcing a bad match from the vocabulary.
 _UNK = ["[unk]"]
 
-COMMAND_GRAMMAR_WORDS: list[str] = (
+def _deduplicate(words: list[str]) -> list[str]:
+    """Remove duplicates while preserving order."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for w in words:
+        if w not in seen:
+            seen.add(w)
+            result.append(w)
+    return result
+
+COMMAND_GRAMMAR_WORDS: list[str] = _deduplicate(
     _WAKE_PHRASES
     + _NATO_PHRASES
     + _KEYWORD_PHRASES

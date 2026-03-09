@@ -125,17 +125,39 @@ class KiwiSDRSource(AudioSource):
             port: KiwiSDR port (default: 8073)
             frequency: Frequency in kHz
             mode: Demodulation mode (usb, lsb, am, cw, nbfm)
+            max_retries: Max reconnect attempts (0 = forever)
+            retry_delay: Initial delay between reconnects in seconds
         """
         super().__init__(config)
         self.host = config.get('host', '')
         self.port = config.get('port', 8073)
         self.frequency = config.get('frequency', 14230)
         self.mode = config.get('mode', 'usb')
+        self.max_retries = config.get('max_retries', 0)
+        self.retry_delay = config.get('retry_delay', 5)
 
         self._audio_queue = None
         self._client = None
         self._client_thread = None
         self._stop_event = None
+
+    def _connect_client(self) -> TalkSpotterKiwiClient:
+        """Create, connect, and open a KiwiSDR client. Returns the client."""
+        options = KiwiOptions(self.host, self.port, self.frequency, self.mode)
+        client = TalkSpotterKiwiClient(options, self._audio_queue)
+        client.connect(self.host, self.port)
+        client.open()
+        return client
+
+    def _close_client(self):
+        """Close and discard the current client."""
+        client = self._client
+        self._client = None
+        if client:
+            try:
+                client.close()
+            except Exception:
+                pass
 
     def start(self, audio_callback: Callable[[np.ndarray], None]):
         """Start streaming from KiwiSDR."""
@@ -146,17 +168,10 @@ class KiwiSDRSource(AudioSource):
         self._audio_queue = Queue()
         self._stop_event = threading.Event()
 
-        freq = self.frequency
-
         print(f"Connecting to KiwiSDR: {self.host}:{self.port}")
-        print(f"Frequency: {freq:.1f} kHz, Mode: {self.mode.upper()}")
+        print(f"Frequency: {self.frequency:.1f} kHz, Mode: {self.mode.upper()}")
 
-        options = KiwiOptions(self.host, self.port, freq, self.mode)
-        self._client = TalkSpotterKiwiClient(options, self._audio_queue)
-
-        # Connect
-        self._client.connect(self.host, self.port)
-        self._client.open()
+        self._client = self._connect_client()
 
         # Start client thread
         self._client_thread = threading.Thread(
@@ -176,13 +191,43 @@ class KiwiSDRSource(AudioSource):
         logging.info("KiwiSDR source started")
 
     def _run_client(self):
-        """Run the KiwiSDR client loop."""
-        try:
-            while not self._stop_event.is_set() and self._client:
-                self._client.run()
-        except Exception as e:
-            if self._running:
+        """Run the KiwiSDR client loop with auto-reconnect."""
+        while not self._stop_event.is_set():
+            # Inner loop: stream audio
+            try:
+                while not self._stop_event.is_set() and self._client:
+                    self._client.run()
+            except Exception as e:
+                if not self._running:
+                    return
                 logging.error(f"KiwiSDR client error: {e}")
+
+            if self._stop_event.is_set():
+                return
+
+            self._close_client()
+
+            # Reconnect loop with exponential backoff
+            attempt = 0
+            delay = self.retry_delay
+            while not self._stop_event.is_set():
+                attempt += 1
+                if self.max_retries > 0 and attempt > self.max_retries:
+                    logging.error(f"KiwiSDR: max retries ({self.max_retries}) exceeded, giving up")
+                    self._running = False
+                    return
+
+                print(f"KiwiSDR disconnected, reconnecting in {delay}s (attempt {attempt})...")
+                if self._stop_event.wait(timeout=delay):
+                    return  # stop was requested during backoff
+
+                try:
+                    self._client = self._connect_client()
+                    logging.info("KiwiSDR reconnected")
+                    break  # back to outer loop
+                except Exception as e:
+                    logging.error(f"KiwiSDR reconnect failed: {e}")
+                    delay = min(delay * 2, 60)
 
     def _process_audio(self):
         """Process audio from the queue and send to callback."""
@@ -212,11 +257,5 @@ class KiwiSDRSource(AudioSource):
         self._running = False
         if self._stop_event:
             self._stop_event.set()
-        client = self._client
-        self._client = None
-        if client:
-            try:
-                client.close()
-            except Exception:
-                pass
+        self._close_client()
         logging.info("KiwiSDR source stopped")

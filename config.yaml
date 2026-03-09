@@ -3,7 +3,7 @@
 # Your callsign - used for all spot posting (DX Cluster, POTA, etc.)
 callsign: "N0CALL"
 
-# Radio selection: kiwisdr, rtl_sdr, sound_card
+# Radio selection: kiwisdr, rtl_sdr, transceiver
 radio: "rtl_sdr"
 
 # KiwiSDR settings
@@ -12,6 +12,8 @@ kiwisdr:
   port: 8073
   frequency: 7218  # kHz
   mode: "lsb"       # usb, lsb, am, cw, nbfm
+  max_retries: 0     # 0 = retry forever
+  retry_delay: 5     # Initial seconds between attempts (doubles each time, caps at 60s)
 
 # RTL-SDR settings
 rtl_sdr:
@@ -23,11 +25,18 @@ rtl_sdr:
   agc: false          # Hardware AGC (recommended for HF direct sampling)
   sample_rate: 256000 # Use 960000 for HF, 256000 for VHF/UHF
 
-# Sound card settings (for Digirig or similar audio interfaces)
-# Requires: pip install soundcard>=0.4.5
-sound_card:
-  microphone_substring: ""   # Substring to match (e.g., "CM108 Audio Controller"), empty = default mic
-  samplerate: 48000
+# Transceiver settings (audio via sound card + optional rig control via Hamlib)
+# Requires: pip install soundcard>=0.4.5; rigctld (libhamlib-utils) for CAT control
+transceiver:
+  frequency: 7275             # Frequency in kHz (0 = use rig's current frequency)
+  mode: "lsb"                 # Mode: usb, lsb, am, fm, etc. (empty = use rig's current mode)
+  rig_model: 1034             # Hamlib rig model (0 = no CAT, audio only; 1034 = Yaesu FT-DX1200)
+  serial_port: ""             # Serial port for CAT (empty = auto-detect digirig CP2102)
+  baud_rate: 38400            # CAT baud rate (must match rig setting)
+  rigctld_port: 4532          # TCP port for rigctld daemon
+  microphone_substring: "USB Audio Device"  # Digirig's CM108 USB audio chip
+  samplerate: 48000           # Sound card sample rate
+  poll_interval: 5.0          # How often to poll rig for freq/mode changes (seconds)
 
 # Vosk speech recognition settings
 vosk:

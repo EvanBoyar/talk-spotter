@@ -11,7 +11,7 @@ case "$1" in
         # Create system user if it doesn't exist
         if ! id -u talk-spotter >/dev/null 2>&1; then
             useradd --system --home-dir "$DATA_DIR" --shell /bin/false \
-                    --groups plugdev talk-spotter || true
+                    --groups plugdev,dialout,audio talk-spotter || true
         fi
 
         # Create data directory

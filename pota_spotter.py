@@ -8,7 +8,6 @@ Posts spots to the POTA API at https://api.pota.app/spot
 import argparse
 import logging
 import requests
-from typing import Optional
 
 
 class POTASpotter:

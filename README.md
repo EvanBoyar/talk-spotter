@@ -12,7 +12,7 @@ I suggest you set it and forget it on a Raspberry Pi. I've tested it on a 3 B+.
 
 ## Features
 
-- **Multiple audio sources**: RTL-SDR (local hardware) or KiwiSDR (remote). Rig support coming soon™
+- **Multiple audio sources**: RTL-SDR (local hardware), KiwiSDR (remote), or transceiver via sound card + Hamlib CAT control
 - **On-device transcription**: Uses Vosk for $0 speech-to-text
 - **Voice command parsing**: Say "talk spotter" followed by callsign and frequency to post a spot (see instructions for exact directions)
 - **DX Cluster integration**: Posts spots to the DX Cluster network
@@ -37,18 +37,38 @@ As Talk Spotter is intended to be used by more than just those who have set up l
 - Linux
 - For RTL-SDR: RTL-SDR dongle (e.g., RTL-SDR Blog V3)
 - For KiwiSDR: Internet connection
+- For Transceiver: Sound card interface (e.g., Digirig), and optionally Hamlib (`libhamlib-utils`) for CAT control
 
 ## Installation
 
-### Quick install (copy-paste)
+### Debian/Ubuntu package (.deb)
+
+Pre-built `.deb` packages for x86_64 and ARM64 are available on the [Releases](https://github.com/EvanBoyar/talk-spotter/releases) page. This is the easiest way to install on Debian-based systems (including Raspberry Pi OS):
 
 ```bash
-git clone https://github.com/EvanBoyar/talk-spotter.git && cd talk-spotter && python3 -m venv venv && venv/bin/pip install -r requirements.txt && wget -q https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip && unzip -q vosk-model-small-en-us-0.15.zip && rm vosk-model-small-en-us-0.15.zip && git clone https://github.com/jks-prv/kiwiclient.git
+sudo dpkg -i talk-spotter_*.deb
+sudo apt-get install -f   # install any missing dependencies
 ```
 
-Then activate the venv and run: `source venv/bin/activate && python talk_spotter.py`
+The package installs a systemd service, downloads the Vosk model, and sets up a virtual environment automatically. After install:
 
-### Step-by-step install
+```bash
+sudo nano /etc/talk-spotter/config.yaml   # set your callsign and radio settings
+sudo systemctl start talk-spotter
+sudo systemctl enable talk-spotter         # start on boot
+```
+
+Or run manually: `talk-spotter --live`
+
+### Quick install from source (copy-paste)
+
+```bash
+sudo apt install -y libhamlib-utils && git clone https://github.com/EvanBoyar/talk-spotter.git && cd talk-spotter && python3 -m venv venv && venv/bin/pip install -r requirements.txt && venv/bin/pip install soundcard && wget -q https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip && unzip -q vosk-model-small-en-us-0.15.zip && rm vosk-model-small-en-us-0.15.zip && git clone https://github.com/jks-prv/kiwiclient.git
+```
+
+Then edit `config.yaml` with your callsign and radio settings, and run: `source venv/bin/activate && python talk_spotter.py`
+
+### Step-by-step install from source
 
 1. **Clone the repository**
    ```bash
@@ -80,6 +100,8 @@ Then activate the venv and run: `source venv/bin/activate && python talk_spotter
 
 6. **(RTL-SDR only) Blacklist kernel modules**
 
+This is kinda stupid, but your computer probably thinks it knows how to deal with RTL-SDR-like SDRs. It almost certainly doesn't, and you need to keep it from trying to use its built-in kernel modules. *C'est la vie.*
+
    Create `/etc/modprobe.d/blacklist-rtlsdr.conf`:
    ```
    blacklist dvb_usb_rtl28xxu
@@ -87,6 +109,13 @@ Then activate the venv and run: `source venv/bin/activate && python talk_spotter
    blacklist rtl2832
    ```
    Then reboot or unload the modules manually.
+
+7. **(Transceiver only) Install additional dependencies**
+
+   ```bash
+   pip install soundcard    # for sound card audio input
+   sudo apt install libhamlib-utils   # for rigctld CAT control (optional)
+   ```
 
 ## Configuration
 
@@ -96,7 +125,7 @@ To keep personal settings out of git, create `config.local.yaml` with just the k
 
 **For HF SSB reception with the RTL-SDR**, you'll need to set "direct sampling: 2", which means we're, uh, directly sampling the Q branch, which is what you should use for HF. Use "direct sampling: 0" for UHF/VHF.
 
-**SOTA Setup:** SOTA requires one-time authentication. Run `venv/bin/python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.
+**SOTA Setup:** This is broken right now, so ignore until the SOTA people finally get back to me. Anyway. SOTA requires one-time authentication. Run `venv/bin/python talk_spotter.py --sota-login` and follow the instructions to log in via your browser. Tokens are stored locally and auto-refresh, so you only need to do this once.
 
 ## Usage
 
@@ -115,7 +144,30 @@ Use `--radio` to override the config file:
 ```bash
 venv/bin/python talk_spotter.py --radio kiwisdr
 venv/bin/python talk_spotter.py --radio rtl_sdr
+venv/bin/python talk_spotter.py --radio transceiver
 ```
+
+### Using a transceiver
+
+Connect a sound card interface (e.g., Digirig) between your rig and computer. Configure the `transceiver` section in `config.yaml`:
+
+```yaml
+radio: "transceiver"
+transceiver:
+  frequency: 14278              # tunes the rig on startup (0 = leave as-is)
+  mode: "usb"                   # sets mode on startup (empty = leave as-is)
+  rig_model: 1034               # Hamlib model (0 = audio only, no CAT control)
+  microphone_substring: "USB Audio Device"  # match your sound card
+```
+
+Run `--list-audio` to see available audio input devices and find the right `microphone_substring` value:
+```bash
+venv/bin/python talk_spotter.py --list-audio
+```
+
+With `rig_model: 0`, it streams audio from the sound card without any CAT control - useful if your rig doesn't support CAT or you don't have a serial connection. With a rig model set, it starts rigctld automatically, tunes the rig, and polls for frequency/mode changes.
+
+Find your Hamlib rig model number with: `rigctld --list | grep -i "your rig"` or just go look at [Hamlib's documentation](https://github.com/Hamlib/Hamlib/wiki/Supported-Radios) and CTRL+F your rig.
 
 ### Using KiwiSDR
 
@@ -208,15 +260,16 @@ venv/bin/python talk_spotter.py --test-file recording.wav
 ### All options
 
 ```
-usage: talk_spotter.py [-h] [--config CONFIG] [--radio {kiwisdr,rtl_sdr}]
+usage: talk_spotter.py [-h] [--config CONFIG] [--radio {kiwisdr,rtl_sdr,transceiver}]
                        [--debug] [--save-wav FILE] [--test-file FILE]
                        [--no-post] [--live] [--no-grammar]
+                       [--list-audio]
                        [--sota-login] [--sota-logout] [--sota-status]
 
 options:
   -h, --help            show this help message and exit
   --config, -c CONFIG   Path to configuration file (default: config.yaml)
-  --radio, -r {kiwisdr,rtl_sdr}
+  --radio, -r {kiwisdr,rtl_sdr,transceiver}
                         Radio source (overrides config)
   --debug, -d           Enable debug logging
   --save-wav FILE       Save received audio to WAV file for debugging
@@ -224,6 +277,7 @@ options:
   --no-post             Parse voice commands but don't actually post spots
   --live                Live transcription mode - clean real-time display
   --no-grammar          Disable grammar constraints (allow any English word)
+  --list-audio          List available audio input devices and exit
   --sota-login          Login to SOTA (one-time setup for spot posting)
   --sota-logout         Logout from SOTA (clear stored tokens)
   --sota-status         Check SOTA authentication status

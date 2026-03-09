@@ -16,9 +16,10 @@ Depends: ${python3:Depends}, ${misc:Depends},
          wget,
          unzip,
          git
-Recommends: rtl-sdr
+Recommends: rtl-sdr, libhamlib-utils
 Description: Voice-activated amateur radio spotting tool
  Talk Spotter listens to radio audio streams, transcribes speech on-device
  using Vosk, and can post spots to the DX Cluster network via voice commands.
  .
- Supports RTL-SDR dongles and KiwiSDR web receivers.
+ Supports RTL-SDR dongles, KiwiSDR web receivers, and transceivers via
+ sound card interface with optional Hamlib CAT control.

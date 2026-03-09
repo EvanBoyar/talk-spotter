@@ -12,8 +12,8 @@ RestartSec=10
 User=talk-spotter
 Group=talk-spotter
 
-# Access to RTL-SDR USB devices
-SupplementaryGroups=plugdev
+# Access to RTL-SDR USB devices and serial ports (CAT control)
+SupplementaryGroups=plugdev dialout audio
 
 # Working directory for any temp files
 WorkingDirectory=/var/lib/talk-spotter
