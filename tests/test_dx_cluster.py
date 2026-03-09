@@ -5,7 +5,7 @@ import socket
 import unittest
 from unittest.mock import MagicMock, patch, call
 
-from dx_cluster import DXCluster
+from spotters.dx_cluster import DXCluster
 
 
 def _make_mock_sock(recv_sequence):
@@ -25,7 +25,7 @@ def _make_mock_sock(recv_sequence):
 class TestDXClusterConnect(unittest.TestCase):
     """Test DXCluster.connect()."""
 
-    @patch("dx_cluster.socket.socket")
+    @patch("spotters.dx_cluster.socket.socket")
     def test_connect_sends_callsign(self, mock_socket_cls):
         mock_sock = _make_mock_sock([
             b"Welcome to DX Cluster\nlogin: ",  # welcome prompt (ends with :)
@@ -42,7 +42,7 @@ class TestDXClusterConnect(unittest.TestCase):
         self.assertTrue(any(b"NR8E" in c[0][0] for c in calls))
         self.assertIn("Welcome", result)
 
-    @patch("dx_cluster.socket.socket")
+    @patch("spotters.dx_cluster.socket.socket")
     def test_connect_timeout(self, mock_socket_cls):
         mock_sock = MagicMock()
         mock_socket_cls.return_value = mock_sock
@@ -71,7 +71,7 @@ class TestDXClusterSpot(unittest.TestCase):
         mock_sock.sendall.reset_mock()
         return cluster, mock_sock
 
-    @patch("dx_cluster.socket.socket")
+    @patch("spotters.dx_cluster.socket.socket")
     def test_spot_format(self, mock_socket_cls):
         cluster, mock_sock = self._connected_cluster(
             mock_socket_cls, [b"Spot posted\n>"]
@@ -82,7 +82,7 @@ class TestDXClusterSpot(unittest.TestCase):
         sent = mock_sock.sendall.call_args[0][0]
         self.assertIn(b"DX 14250.0 W1AW CQ CQ", sent)
 
-    @patch("dx_cluster.socket.socket")
+    @patch("spotters.dx_cluster.socket.socket")
     def test_spot_sanitizes_newlines(self, mock_socket_cls):
         cluster, mock_sock = self._connected_cluster(
             mock_socket_cls, [b">"]
@@ -109,7 +109,7 @@ class TestDXClusterSpot(unittest.TestCase):
 class TestDXClusterDisconnect(unittest.TestCase):
     """Test DXCluster.disconnect()."""
 
-    @patch("dx_cluster.socket.socket")
+    @patch("spotters.dx_cluster.socket.socket")
     def test_disconnect_sends_bye(self, mock_socket_cls):
         mock_sock = _make_mock_sock([b"login: ", b">"])
         mock_socket_cls.return_value = mock_sock
@@ -133,7 +133,7 @@ class TestDXClusterDisconnect(unittest.TestCase):
 class TestDXClusterContextManager(unittest.TestCase):
     """Test context manager protocol."""
 
-    @patch("dx_cluster.socket.socket")
+    @patch("spotters.dx_cluster.socket.socket")
     def test_context_manager(self, mock_socket_cls):
         mock_sock = _make_mock_sock([b"login: ", b">"])
         mock_socket_cls.return_value = mock_sock

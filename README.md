@@ -283,16 +283,6 @@ options:
   --sota-status         Check SOTA authentication status
 ```
 
-## Standalone scripts
-
-These scripts can be used independently for testing specific functionality:
-
-- `kiwi_stream.py` - Stream and transcribe from a KiwiSDR
-- `rtl_stream.py` - Stream and transcribe from an RTL-SDR
-- `dx_cluster.py` - Test DX Cluster connectivity
-- `pota_spotter.py` - Test POTA spot posting
-- `sota_spotter.py` - SOTA authentication and spot posting
-
 ## Running at Startup
 
 To run Talk Spotter automatically on boot (useful for a dedicated Pi), create a systemd service:

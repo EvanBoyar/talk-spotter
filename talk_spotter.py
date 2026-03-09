@@ -17,13 +17,13 @@ from pathlib import Path
 import yaml
 import numpy as np
 
-from transcription import Transcriber
-from grammar import build_grammar_json
+from lib.transcription import Transcriber
+from lib.grammar import build_grammar_json
 from sources.base import AudioSource
-from dx_cluster import DXCluster
-from pota_spotter import POTASpotter
-from sota_spotter import SOTASpotter, SOTAAuth
-from command_parser import CommandParser, SpotCommand
+from spotters.dx_cluster import DXCluster
+from spotters.pota_spotter import POTASpotter
+from spotters.sota_spotter import SOTASpotter, SOTAAuth
+from lib.command_parser import CommandParser, SpotCommand
 
 
 class Config:

@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, patch
 
 import requests
 
-from pota_spotter import POTASpotter
+from spotters.pota_spotter import POTASpotter
 
 
 class TestPOTASpotterSuccess(unittest.TestCase):
     """Test successful spot posting."""
 
-    @patch("pota_spotter.requests.post")
+    @patch("spotters.pota_spotter.requests.post")
     def test_successful_spot(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -44,7 +44,7 @@ class TestPOTASpotterSuccess(unittest.TestCase):
 class TestPOTASpotterErrors(unittest.TestCase):
     """Test error handling."""
 
-    @patch("pota_spotter.requests.post")
+    @patch("spotters.pota_spotter.requests.post")
     def test_api_error_response(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 400
@@ -58,7 +58,7 @@ class TestPOTASpotterErrors(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("Invalid park reference", result["error"])
 
-    @patch("pota_spotter.requests.post")
+    @patch("spotters.pota_spotter.requests.post")
     def test_non_json_error_response(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 500
@@ -72,7 +72,7 @@ class TestPOTASpotterErrors(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("Internal Server Error", result["error"])
 
-    @patch("pota_spotter.requests.post")
+    @patch("spotters.pota_spotter.requests.post")
     def test_network_exception(self, mock_post):
         mock_post.side_effect = requests.ConnectionError("Connection refused")
 
@@ -82,7 +82,7 @@ class TestPOTASpotterErrors(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("Connection refused", result["error"])
 
-    @patch("pota_spotter.requests.post")
+    @patch("spotters.pota_spotter.requests.post")
     def test_timeout_exception(self, mock_post):
         mock_post.side_effect = requests.Timeout("timed out")
 
@@ -100,7 +100,7 @@ class TestPOTASpotterCallsign(unittest.TestCase):
         spotter = POTASpotter("nr8e")
         self.assertEqual(spotter.spotter_callsign, "NR8E")
 
-    @patch("pota_spotter.requests.post")
+    @patch("spotters.pota_spotter.requests.post")
     def test_activator_uppercased(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 200

@@ -5,7 +5,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from command_parser import (
+from lib.command_parser import (
     CommandParser,
     CommandState,
     SpotCommand,

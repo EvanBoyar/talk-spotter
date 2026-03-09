@@ -12,7 +12,7 @@ Use in spot mode or when testing command recognition with --grammar flag.
 
 import json
 
-from command_parser import NATO_TO_LETTER, SPOKEN_NUMBERS
+from .command_parser import NATO_TO_LETTER, SPOKEN_NUMBERS
 
 
 # Multi-word wake phrase entries - treated as a unit by the decoder,

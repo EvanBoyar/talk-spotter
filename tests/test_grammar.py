@@ -4,8 +4,8 @@
 import json
 import unittest
 
-from grammar import build_grammar_json, COMMAND_GRAMMAR_WORDS
-from command_parser import NATO_TO_LETTER, SPOKEN_NUMBERS
+from lib.grammar import build_grammar_json, COMMAND_GRAMMAR_WORDS
+from lib.command_parser import NATO_TO_LETTER, SPOKEN_NUMBERS
 
 
 class TestBuildGrammarJson(unittest.TestCase):

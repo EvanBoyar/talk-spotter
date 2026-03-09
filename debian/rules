@@ -10,15 +10,17 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/talk-spotter/etc/talk-spotter
 	install -d $(CURDIR)/debian/talk-spotter/lib/systemd/system
 
-	# Install Python files
+	# Install main entry point and requirements
 	install -m 644 talk_spotter.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
-	install -m 644 transcription.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
-	install -m 644 command_parser.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
-	install -m 644 grammar.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
-	install -m 644 dx_cluster.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
-	install -m 644 pota_spotter.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
-	install -m 644 sota_spotter.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
 	install -m 644 requirements.txt $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/
+
+	# Install lib package
+	install -d $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/lib
+	install -m 644 lib/*.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/lib/
+
+	# Install spotters package
+	install -d $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/spotters
+	install -m 644 spotters/*.py $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/spotters/
 
 	# Install sources package
 	install -d $(CURDIR)/debian/talk-spotter/usr/share/talk-spotter/sources
