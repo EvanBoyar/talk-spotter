@@ -17,6 +17,7 @@ from pathlib import Path
 import yaml
 import numpy as np
 
+from lib.version import __version__
 from lib.transcription import Transcriber
 from lib.grammar import build_grammar_json
 from sources.base import AudioSource
@@ -124,6 +125,11 @@ def create_source(config: Config):
 def main():
     parser = argparse.ArgumentParser(
         description="Talk Spotter - Voice-activated amateur radio spotting"
+    )
+    parser.add_argument(
+        "--version", "-V",
+        action="version",
+        version=f"Talk Spotter {__version__}"
     )
     parser.add_argument(
         "--config", "-c",

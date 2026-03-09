@@ -1,3 +1,13 @@
+talk-spotter (2.0.2) stable; urgency=low
+
+  * Add CI test step before .deb builds in release workflow
+  * Add --version flag and central version constant (lib/version.py)
+  * Add SOTA spotter unit tests (18 tests covering auth + spot posting)
+  * Update SOTA User-Agent to use version constant
+  * Update CLAUDE.md for new project structure
+
+ -- Evan Boyar <evanboyar@proton.me>  Sun, 09 Mar 2026 20:00:00 -0500
+
 talk-spotter (2.0.1) stable; urgency=low
 
   * Reorganize codebase: lib/, spotters/, tests/ package structure

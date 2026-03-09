@@ -16,6 +16,8 @@ from typing import Optional
 
 import requests
 
+from lib.version import __version__
+
 
 class SOTAAuth:
     """OAuth 2.0 authentication for SOTA using Device Code flow."""
@@ -268,7 +270,7 @@ class SOTASpotter:
     """Client for posting spots to SOTA."""
 
     API_URL = "https://api-db2.sota.org.uk/api/spots"
-    USER_AGENT = "TalkSpotter/1.0 (https://github.com/EvanBoyar/talk-spotter)"
+    USER_AGENT = f"TalkSpotter/{__version__} (https://github.com/EvanBoyar/talk-spotter)"
 
     def __init__(self, spotter_callsign: str, auth: Optional[SOTAAuth] = None):
         """
